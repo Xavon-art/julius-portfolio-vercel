@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { Mail, UserRound, GitBranch, ArrowUpRight, Check } from "lucide-react";
 import { SectionFrame } from "@/components/sections/SectionFrame";
@@ -47,6 +47,50 @@ const inputClass =
 export function ContactSection() {
   const contact = SECTION_MAP.contact;
   const [submitted, setSubmitted] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
+
+  // The pill is a real mailto: link, so devices with a default mail app open
+  // a draft. Devices/browsers without a mailto handler do nothing silently,
+  // so we also copy the address and confirm it — the button always responds.
+  const copyEmail = async () => {
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText("juliusmatro01@gmail.com");
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      const ta = document.createElement("textarea");
+      ta.value = "juliusmatro01@gmail.com";
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        ok = true;
+      } catch {
+        ok = false;
+      }
+      ta.remove();
+    }
+    if (ok) {
+      setEmailCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setEmailCopied(false), 3200);
+    }
+  };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -172,25 +216,39 @@ export function ContactSection() {
         <Reveal delay={0.34}>
           {/* Direct links */}
           <ul className="mt-12 flex flex-wrap items-center justify-center gap-3">
-            {CONTACT_LINKS.map(({ label, value, href, Icon }) => (
+            {CONTACT_LINKS.map(({ label, value, href, Icon }) => {
+            const isEmail = label === "Email";
+            return (
               <li key={label}>
                 <a
                   href={href}
                   target={href.startsWith("http") ? "_blank" : undefined}
                   rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  onClick={isEmail ? copyEmail : undefined}
+                  aria-live={isEmail ? "polite" : undefined}
                   className="group inline-flex items-center gap-2.5 rounded-full border border-ink/10 bg-white/60 px-5 py-2.5 text-sm font-medium tracking-tight text-ink backdrop-blur-sm transition-all duration-300 hover:border-ink/40 hover:bg-white"
                 >
                   <Icon size={16} strokeWidth={1.75} className="text-ink-soft transition-colors group-hover:text-ink" />
                   <span className="hidden sm:inline">{label}</span>
-                  <span>{value}</span>
-                  <ArrowUpRight
-                    size={14}
-                    strokeWidth={2}
-                    className="text-ink-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink"
-                  />
+                  {isEmail && emailCopied ? (
+                    <span className="flex items-center gap-1.5 text-ink-soft">
+                      <Check size={14} strokeWidth={2} />
+                      Copied
+                    </span>
+                  ) : (
+                    <>
+                      <span>{value}</span>
+                      <ArrowUpRight
+                        size={14}
+                        strokeWidth={2}
+                        className="text-ink-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink"
+                      />
+                    </>
+                  )}
                 </a>
               </li>
-            ))}
+            );
+          })}
           </ul>
         </Reveal>
 
