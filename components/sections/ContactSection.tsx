@@ -204,9 +204,14 @@ export function ContactSection() {
       });
       const verify = (await verifyRes.json().catch(() => ({}))) as {
         success?: boolean;
+        message?: string;
       };
       if (!verifyRes.ok || verify.success !== true) {
-        throw new Error("Captcha verification failed");
+        const why =
+          typeof verify.message === "string"
+            ? verify.message
+            : `Verification failed (HTTP ${verifyRes.status})`;
+        throw new Error(`Human check rejected: ${why}`);
       }
 
       // 2) Deliver from the browser — Web3Forms free tier requires it, and
@@ -218,16 +223,24 @@ export function ContactSection() {
       });
       const sent = (await sendRes.json().catch(() => ({}))) as {
         success?: boolean;
+        message?: string;
       };
       if (!sendRes.ok || sent.success !== true) {
-        throw new Error(sent.success === undefined ? "Network error" : "Send failed");
+        const why =
+          typeof sent.message === "string" && sent.message
+            ? sent.message
+            : sent.success === undefined
+              ? `Network error (HTTP ${sendRes.status})`
+              : "Web3Forms returned a failure";
+        throw new Error(`Delivery failed: ${why}`);
       }
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      const reason =
+        err instanceof Error && err.message ? err.message : "Unknown error";
+      console.error("[contact] send failed:", reason);
       setStatus("error");
-      setErrorMsg(
-        "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
-      );
+      setErrorMsg(`${reason} Please try again, or email juliusmatro01@gmail.com directly.`);
     }
   };
 
