@@ -1,69 +1,92 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
+import type { ComponentType } from "react";
+import { SECTIONS, type SectionId, type SectionProps } from "@/lib/sections";
+import { useSectionNavigation } from "@/hooks/useSectionNavigation";
+import { Navbar } from "@/components/nav/Navbar";
+import { SectionIndicator } from "@/components/nav/SectionIndicator";
+import { HeroSection } from "@/components/sections/HeroSection";
+import { AboutSection } from "@/components/sections/AboutSection";
+import { SkillsSection } from "@/components/sections/SkillsSection";
+import { WorkSection } from "@/components/sections/WorkSection";
+import { ServicesSection } from "@/components/sections/ServicesSection";
+import { ContactSection } from "@/components/sections/ContactSection";
+
+/* ==================================================================
+   PortfolioShell — the "section-as-page" transition engine.
+   ==================================================================
+   HOW NAVIGATION WORKS
+   This is a single route, but it is NOT a scrolling page. The App
+   Router serves one viewport; useSectionNavigation holds the active
+   section index, and AnimatePresence crossfades between sections:
+
+     - Every section is absolutely positioned (inset-0), so during a
+       transition the outgoing and incoming sections overlap in place.
+     - The section-level motion.div applies a 550ms crossfade with a
+       slight scale + vertical shift (Apple-ease curve).
+       Outgoing: opacity → 0, scale → 1.012, y → −16
+       Incoming: opacity → 1, scale 0.985 → 1, y 16 → 0
+
+   Sections are opaque flat surfaces now (white for home, paper for the
+   rest — see lib/sections.ts), so the crossfade cleanly blends one
+   solid panel into the next; there is no animated background layer.
+
+   The section registry (lib/sections.ts) is the single source of
+   truth for ids, labels, titles, and surface tones.
+=================================================================== */
+
+const SECTION_COMPONENTS: Record<SectionId, ComponentType<SectionProps>> = {
+  home: HeroSection,
+  about: AboutSection,
+  skills: SkillsSection,
+  work: WorkSection,
+  services: ServicesSection,
+  contact: ContactSection,
+};
+
+export default function Page() {
+  const { index, goTo, goToId, next, prev } = useSectionNavigation();
+  const active = SECTIONS[index];
+  const ActiveSection = SECTION_COMPONENTS[active.id];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <MotionConfig reducedMotion="user">
+      <div className="fixed inset-0 overflow-hidden bg-white text-ink">
+        <Navbar activeId={active.id} navigate={goToId} />
+
+        <main className="relative z-10 h-full">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={active.id}
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 0.985, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.012, y: -18, pointerEvents: "none" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ActiveSection navigate={goToId} next={next} prev={prev} />
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        <SectionIndicator current={index} navigate={goTo} />
+
+        {/* Thin Apple-style progress line at the bottom */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed bottom-0 left-0 z-40 h-[3px] bg-ink"
+          style={{
+            width: `${((index + 1) / SECTIONS.length) * 100}%`,
+            transition: "width 0.55s cubic-bezier(0.16,1,0.3,1)",
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        {/* Screen-reader announcement on navigation */}
+        <p className="sr-only" role="status" aria-live="polite">
+          Now showing: {active.label}
+        </p>
+      </div>
+    </MotionConfig>
   );
 }
