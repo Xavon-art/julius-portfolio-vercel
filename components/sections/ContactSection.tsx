@@ -221,35 +221,30 @@ export function ContactSection() {
       // Web3Forms' own honeypot and is safe when empty.
       fd.delete("cf-turnstile-response");
       fd.append("access_key", ACCESS_KEY);
-      // TEMP-DIAGNOSTIC: confirm the injected access key is populated
-      // and the Turnstile field is gone from the payload.
-      console.log("[contact] access_key injected:", ACCESS_KEY ? ACCESS_KEY.slice(0, 8) + "…" : "(EMPTY — not injected!)");
-      console.log("[contact] final payload field names:", [...fd.keys()].join(", "));
-      console.log("[contact] sending to Web3Forms; fields:", fd.get("name"), "|", fd.get("email"));
       const sendRes = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: fd,
       });
-      const rawText = await sendRes.text();
-      let sent: { success?: boolean; message?: string } = {};
-      try {
-        sent = JSON.parse(rawText);
-      } catch {
-        console.error("[contact] Web3Forms returned non-JSON body:", rawText.slice(0, 500));
-      }
-      console.log("[contact] Web3Forms response:", sendRes.status, rawText.slice(0, 500));
+      const sent = (await sendRes.json().catch(() => ({}))) as {
+        success?: boolean;
+      };
       if (!sendRes.ok || sent.success !== true) {
-        console.error("[contact] Web3Forms rejected submission:", sendRes.status, sent);
         setStatus("error");
-        setErrorMsg(`Web3Forms rejected (HTTP ${sendRes.status}): ${JSON.stringify(sent).slice(0, 200)} — try again or email juliusmatro01@gmail.com directly.`);
+        setErrorMsg(
+          "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
+        );
         return;
       }
+      // The form (with the Turnstile container) is about to leave the DOM —
+      // remove the widget from Turnstile's registry first and clear the ID so
+      // nothing left dangling on a later remount. Without this, Turnstile logs
+      // "Cannot find widget" when the stale ID is removed on the next mount.
+      if (widgetIdRef.current) {
+        window.turnstile?.remove(widgetIdRef.current);
+        widgetIdRef.current = undefined;
+      }
       setSubmitted(true);
-    } catch (err) {
-      console.error("[contact] Web3Forms fetch failed:", err);
-      const reason =
-        err instanceof Error && err.message ? err.message : "Unknown error";
-      console.error("[contact] send failed reason:", reason);
+    } catch {
       setStatus("error");
       setErrorMsg(
         "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
