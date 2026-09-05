@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Mail, UserRound, GitBranch, ArrowUpRight, Check } from "lucide-react";
+import { Mail, UserRound, GitBranch, ArrowUpRight, Check, Loader2 } from "lucide-react";
 import { SectionFrame } from "@/components/sections/SectionFrame";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
@@ -10,14 +10,29 @@ import { SECTION_MAP } from "@/lib/sections";
 
 /* ------------------------------------------------------------------
    Contact — bookends the experience on the paper surface, echoing the
-   hero's calm. Apple-form aesthetic (underline inputs), plus direct
-   links.
-   ------------------------------------------------------------------
-   The form has no backend yet — submitting shows a success state.
-   PLACEHOLDER: wire onSubmit to your preferred endpoint (a Next.js
-   route handler, Formspree, Resend, …) and remove the test branch.
-   The email/LinkedIn/GitHub links below are also placeholders.
+   hero's calm. Apple-form aesthetic (underline inputs) + direct links.
+
+   The form posts to /api/contact, which verifies the Cloudflare
+   Turnstile token and delivers the message through Web3Forms (free).
+   NEXT_PUBLIC_TURNSTILE_SITE_KEY is injected at build time.
 ------------------------------------------------------------------- */
+
+interface TurnstileWidgetOptions {
+  sitekey: string;
+  theme?: "light" | "dark" | "auto";
+  callback?: (token: string) => void;
+  "expired-callback"?: () => void;
+  "error-callback"?: () => void;
+}
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: TurnstileWidgetOptions) => string;
+      remove: (widgetId?: string) => void;
+    };
+  }
+}
 
 // Julius' real contact details.
 const CONTACT_LINKS = [
@@ -44,9 +59,40 @@ const CONTACT_LINKS = [
 const inputClass =
   "w-full border-0 border-b-2 border-ink/10 bg-transparent px-0 py-3 text-[17px] tracking-tight text-ink transition-colors duration-300 placeholder:text-ink-faint focus:border-ink focus:outline-none";
 
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+let turnstileShell: Promise<void> | null = null;
+function loadTurnstileScript(): Promise<void> {
+  if (!SITE_KEY) return Promise.reject(new Error("no site key"));
+  if (typeof window !== "undefined" && window.turnstile) {
+    return Promise.resolve();
+  }
+  if (!turnstileShell) {
+    turnstileShell = new Promise<void>((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      s.async = true;
+      s.defer = true;
+      s.onload = () => resolve();
+      s.onerror = () => {
+        turnstileShell = null;
+        reject(new Error("Turnstile script failed to load"));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  return turnstileShell;
+}
+
 export function ContactSection() {
   const contact = SECTION_MAP.contact;
   const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const captchaElRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | undefined>(undefined);
   const [emailCopied, setEmailCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -56,6 +102,40 @@ export function ContactSection() {
     },
     [],
   );
+
+  // Mount the Turnstile widget for this section. It is torn down when the
+  // section unmounts (SPA navigation) and re-rendered on the next visit.
+  useEffect(() => {
+    if (!SITE_KEY) return;
+    let cancelled = false;
+    loadTurnstileScript()
+      .then(() => {
+        if (cancelled || !captchaElRef.current) return;
+        if (widgetIdRef.current) window.turnstile?.remove(widgetIdRef.current);
+        widgetIdRef.current = window.turnstile?.render(captchaElRef.current, {
+          sitekey: SITE_KEY,
+          theme: "light",
+          callback: (token) => setTurnstileToken(token),
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => setTurnstileToken(""),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatus("error");
+          setErrorMsg(
+            "The anti-bot check couldn't load — please email juliusmatro01@gmail.com directly.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+      if (widgetIdRef.current) {
+        window.turnstile?.remove(widgetIdRef.current);
+        widgetIdRef.current = undefined;
+      }
+    };
+  }, []);
 
   // The pill is a real mailto: link, so devices with a default mail app open
   // a draft. Devices/browsers without a mailto handler do nothing silently,
@@ -92,11 +172,52 @@ export function ContactSection() {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // PLACEHOLDER: POST the form data to your message backend here.
-    // For now we simulate success to keep the UI honest and complete.
-    setSubmitted(true);
+    if (status === "sending") return;
+    setErrorMsg(null);
+
+    if (!SITE_KEY) {
+      setStatus("error");
+      setErrorMsg(
+        "The contact form is still being configured — please email juliusmatro01@gmail.com directly.",
+      );
+      return;
+    }
+    if (!turnstileToken) {
+      setStatus("error");
+      setErrorMsg("Please complete the human check first.");
+      return;
+    }
+
+    setStatus("sending");
+    const fd = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: String(fd.get("name") ?? ""),
+          email: String(fd.get("email") ?? ""),
+          message: String(fd.get("message") ?? ""),
+          token: turnstileToken,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+      };
+      if (!res.ok || data.success !== true) {
+        throw new Error(data.success === undefined ? "Network error" : "Send failed");
+      }
+      setSubmitted(true);
+    } catch {
+      setStatus("error");
+      setErrorMsg(
+        "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
+      );
+    } finally {
+      setStatus("idle");
+    }
   };
 
   return (
@@ -133,7 +254,7 @@ export function ContactSection() {
                 <Check size={26} strokeWidth={2} />
               </div>
               <p className="mt-6 text-2xl font-semibold tracking-tight text-ink">
-                Thanks — I&apos;ll get back to you soon.
+                Message sent — I&apos;ll get back to you soon.
               </p>
               <p className="mt-3 text-[15px] text-ink-soft">
                 In the meantime, reach me directly at{" "}
@@ -204,9 +325,32 @@ export function ContactSection() {
                 />
               </div>
 
-              <div className="flex justify-center pt-2">
-                <Button type="submit" className="w-full sm:w-auto">
-                  Send Message
+              <div className="flex flex-col items-center gap-3 pt-1">
+                <div
+                  ref={captchaElRef}
+                  className="cf-turnstile"
+                  data-sitekey={SITE_KEY}
+                  data-theme="light"
+                  aria-label="Human verification"
+                />
+                {status === "error" && errorMsg && (
+                  <p role="alert" className="max-w-md text-sm text-ink-soft">
+                    {errorMsg}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  disabled={status === "sending"}
+                  className="w-full sm:w-auto"
+                >
+                  {status === "sending" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 size={16} strokeWidth={2} className="animate-spin" />
+                      Sending…
+                    </span>
+                  ) : (
+                    "Send Message"
+                  )}
                 </Button>
               </div>
             </form>
