@@ -12,10 +12,13 @@ import { SECTION_MAP } from "@/lib/sections";
    Contact — bookends the experience on the paper surface, echoing the
    hero's calm. Apple-form aesthetic (underline inputs) + direct links.
 
-   Flow: on submit the client posts name/email/message + the Turnstile
-   token to /api/contact. The Worker verifies the token server-side with
-   its TURNSTILE_SECRET_KEY secret, then forwards clean fields to
-   Web3Forms. The site key is public by design and inlined at build.
+   Split flow (verification + delivery stay separate):
+   Step 1 — the Turnstile token is verified server-side via
+            /api/verify-captcha (secret stays in a Workers secret).
+   Step 2 — on success, the browser submits directly to Web3Forms from
+            the visitor's own IP (their free tier requires it and
+            per-visitor IPs avoid the shared-egress rate-limit). The
+            access key + site key are public by design, inlined here.
 ------------------------------------------------------------------- */
 
 interface TurnstileWidgetOptions {
@@ -61,6 +64,7 @@ const inputClass =
   "w-full border-0 border-b-2 border-ink/10 bg-transparent px-0 py-3 text-[17px] tracking-tight text-ink transition-colors duration-300 placeholder:text-ink-faint focus:border-ink focus:outline-none";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY ?? "";
 
 let turnstileShell: Promise<void> | null = null;
 function loadTurnstileScript(): Promise<void> {
@@ -178,7 +182,7 @@ export function ContactSection() {
     if (status === "sending") return;
     setErrorMsg(null);
 
-    if (!SITE_KEY) {
+    if (!SITE_KEY || !ACCESS_KEY) {
       setStatus("error");
       setErrorMsg(
         "The contact form is still being configured — please email juliusmatro01@gmail.com directly.",
@@ -194,29 +198,33 @@ export function ContactSection() {
     setStatus("sending");
     const fd = new FormData(e.currentTarget);
     try {
-      // The Worker verifies the Turnstile token server-side, then
-      // delivers to Web3Forms. No Turnstile field leaves the Worker's
-      // clean payload (that would trip Web3Forms' Pro check).
-      const res = await fetch("/api/contact", {
+      // Step 1 — server-side Turnstile verification only.
+      const verifyRes = await fetch("/api/verify-captcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: String(fd.get("name") ?? "").trim(),
-          email: String(fd.get("email") ?? "").trim(),
-          message: String(fd.get("message") ?? "").trim(),
-          token: turnstileToken,
-        }),
+        body: JSON.stringify({ token: turnstileToken }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
+      const verify = (await verifyRes.json().catch(() => ({}))) as {
         success?: boolean;
-        message?: string;
       };
-      if (!res.ok || data.success !== true) {
-        throw new Error(
-          typeof data.message === "string" && data.message
-            ? data.message
-            : `Send failed (HTTP ${res.status})`,
-        );
+      if (!verifyRes.ok || verify.success !== true) {
+        setStatus("error");
+        setErrorMsg("Captcha verification failed. Please try again.");
+        return;
+      }
+
+      // Step 2 — the browser (visitor's own IP) delivers to Web3Forms.
+      // No Turnstile field here: it triggers their Pro-feature check.
+      fd.append("access_key", ACCESS_KEY);
+      const sendRes = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: fd,
+      });
+      const sent = (await sendRes.json().catch(() => ({}))) as {
+        success?: boolean;
+      };
+      if (!sendRes.ok || sent.success !== true) {
+        throw new Error(sent.success === undefined ? "Network error" : "Send failed");
       }
       setSubmitted(true);
     } catch (err) {
@@ -224,7 +232,9 @@ export function ContactSection() {
         err instanceof Error && err.message ? err.message : "Unknown error";
       console.error("[contact] send failed:", reason);
       setStatus("error");
-      setErrorMsg(`${reason} Please try again, or email juliusmatro01@gmail.com directly.`);
+      setErrorMsg(
+        "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
+      );
     }
   };
 
