@@ -28,6 +28,27 @@ export const metadata: Metadata = {
     "workflow automation",
   ],
   robots: { index: true, follow: true },
+  icons: {
+    // Adaptive circuit-board icon: ink on light, white on dark (SVG media
+    // queries are honored by Chrome/Edge/Firefox; Safari uses the PNGs).
+    icon: [
+      {
+        url: "/favicon-light.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/favicon-dark.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
