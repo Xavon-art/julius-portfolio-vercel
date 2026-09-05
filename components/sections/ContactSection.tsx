@@ -12,9 +12,11 @@ import { SECTION_MAP } from "@/lib/sections";
    Contact — bookends the experience on the paper surface, echoing the
    hero's calm. Apple-form aesthetic (underline inputs) + direct links.
 
-   The form posts to /api/contact, which verifies the Cloudflare
-   Turnstile token and delivers the message through Web3Forms (free).
-   NEXT_PUBLIC_TURNSTILE_SITE_KEY is injected at build time.
+   Flow: the Turnstile token is verified server-side via /api/turnstile/
+   verify (secret stays in a Cloudflare Workers secret), then the form
+   POSTs straight to Web3Forms from the browser — their free tier
+   requires client-side submissions. Access key + site key are public by
+   design, so they are inlined at build time here.
 ------------------------------------------------------------------- */
 
 interface TurnstileWidgetOptions {
@@ -60,6 +62,7 @@ const inputClass =
   "w-full border-0 border-b-2 border-ink/10 bg-transparent px-0 py-3 text-[17px] tracking-tight text-ink transition-colors duration-300 placeholder:text-ink-faint focus:border-ink focus:outline-none";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY ?? "";
 
 let turnstileShell: Promise<void> | null = null;
 function loadTurnstileScript(): Promise<void> {
@@ -177,7 +180,7 @@ export function ContactSection() {
     if (status === "sending") return;
     setErrorMsg(null);
 
-    if (!SITE_KEY) {
+    if (!SITE_KEY || !ACCESS_KEY) {
       setStatus("error");
       setErrorMsg(
         "The contact form is still being configured — please email juliusmatro01@gmail.com directly.",
@@ -193,21 +196,31 @@ export function ContactSection() {
     setStatus("sending");
     const fd = new FormData(e.currentTarget);
     try {
-      const res = await fetch("/api/contact", {
+      // 1) Server-side Turnstile check (secret lives in a Workers secret).
+      const verifyRes = await fetch("/api/turnstile/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: String(fd.get("name") ?? ""),
-          email: String(fd.get("email") ?? ""),
-          message: String(fd.get("message") ?? ""),
-          token: turnstileToken,
-        }),
+        body: JSON.stringify({ token: turnstileToken }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
+      const verify = (await verifyRes.json().catch(() => ({}))) as {
         success?: boolean;
       };
-      if (!res.ok || data.success !== true) {
-        throw new Error(data.success === undefined ? "Network error" : "Send failed");
+      if (!verifyRes.ok || verify.success !== true) {
+        throw new Error("Captcha verification failed");
+      }
+
+      // 2) Deliver from the browser — Web3Forms free tier requires it.
+      fd.append("access_key", ACCESS_KEY);
+      fd.append("cf-turnstile-response", turnstileToken);
+      const sendRes = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: fd,
+      });
+      const sent = (await sendRes.json().catch(() => ({}))) as {
+        success?: boolean;
+      };
+      if (!sendRes.ok || sent.success !== true) {
+        throw new Error(sent.success === undefined ? "Network error" : "Send failed");
       }
       setSubmitted(true);
     } catch {
@@ -215,8 +228,6 @@ export function ContactSection() {
       setErrorMsg(
         "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
       );
-    } finally {
-      setStatus("idle");
     }
   };
 
