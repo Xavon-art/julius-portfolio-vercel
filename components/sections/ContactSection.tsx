@@ -19,24 +19,24 @@ import { SECTION_MAP } from "@/lib/sections";
    The email/LinkedIn/GitHub links below are also placeholders.
 ------------------------------------------------------------------- */
 
-// PLACEHOLDER: use Julius' real contact details.
+// Julius' real contact details.
 const CONTACT_LINKS = [
   {
     label: "Email",
-    value: "hello@juliusmatro.dev",
-    href: "mailto:hello@juliusmatro.dev",
+    value: "juliusmatro01@gmail.com",
+    href: "mailto:juliusmatro01@gmail.com",
     Icon: Mail,
   },
   {
     label: "LinkedIn",
-    value: "/in/juliusmatro",
-    href: "https://www.linkedin.com/in/juliusmatro",
+    value: "/in/julz-is-a-dev",
+    href: "https://www.linkedin.com/in/julz-is-a-dev",
     Icon: UserRound,
   },
   {
     label: "GitHub",
-    value: "@juliusmatro",
-    href: "https://github.com/juliusmatro",
+    value: "@Xavon-art",
+    href: "https://github.com/Xavon-art",
     Icon: GitBranch,
   },
 ];
@@ -94,10 +94,10 @@ export function ContactSection() {
               <p className="mt-3 text-[15px] text-ink-soft">
                 In the meantime, reach me directly at{" "}
                 <a
-                  href="mailto:hello@juliusmatro.dev"
+                  href="mailto:juliusmatro01@gmail.com"
                   className="font-medium text-ink underline decoration-ink/20 underline-offset-4 transition-colors hover:decoration-ink"
                 >
-                  hello@juliusmatro.dev
+                  juliusmatro01@gmail.com
                 </a>
                 .
               </p>
