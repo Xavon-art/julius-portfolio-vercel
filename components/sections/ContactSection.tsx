@@ -209,9 +209,9 @@ export function ContactSection() {
         throw new Error("Captcha verification failed");
       }
 
-      // 2) Deliver from the browser — Web3Forms free tier requires it.
+      // 2) Deliver from the browser — Web3Forms free tier requires it, and
+      //    rejects submissions that carry a Turnstile token (Pro-only).
       fd.append("access_key", ACCESS_KEY);
-      fd.append("cf-turnstile-response", turnstileToken);
       const sendRes = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: fd,
@@ -283,6 +283,13 @@ export function ContactSection() {
               onSubmit={handleSubmit}
               className="mx-auto mt-12 space-y-6 text-left"
             >
+              <input
+                type="hidden"
+                name="botcheck"
+                value=""
+                aria-hidden="true"
+                tabIndex={-1}
+              />
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label
