@@ -12,11 +12,10 @@ import { SECTION_MAP } from "@/lib/sections";
    Contact — bookends the experience on the paper surface, echoing the
    hero's calm. Apple-form aesthetic (underline inputs) + direct links.
 
-   Flow: the Turnstile token is verified server-side via /api/turnstile/
-   verify (secret stays in a Cloudflare Workers secret), then the form
-   POSTs straight to Web3Forms from the browser — their free tier
-   requires client-side submissions. Access key + site key are public by
-   design, so they are inlined at build time here.
+   Flow: on submit the client posts name/email/message + the Turnstile
+   token to /api/contact. The Worker verifies the token server-side with
+   its TURNSTILE_SECRET_KEY secret, then forwards clean fields to
+   Web3Forms. The site key is public by design and inlined at build.
 ------------------------------------------------------------------- */
 
 interface TurnstileWidgetOptions {
@@ -62,7 +61,6 @@ const inputClass =
   "w-full border-0 border-b-2 border-ink/10 bg-transparent px-0 py-3 text-[17px] tracking-tight text-ink transition-colors duration-300 placeholder:text-ink-faint focus:border-ink focus:outline-none";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
-const ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY ?? "";
 
 let turnstileShell: Promise<void> | null = null;
 function loadTurnstileScript(): Promise<void> {
@@ -180,7 +178,7 @@ export function ContactSection() {
     if (status === "sending") return;
     setErrorMsg(null);
 
-    if (!SITE_KEY || !ACCESS_KEY) {
+    if (!SITE_KEY) {
       setStatus("error");
       setErrorMsg(
         "The contact form is still being configured — please email juliusmatro01@gmail.com directly.",
@@ -196,43 +194,29 @@ export function ContactSection() {
     setStatus("sending");
     const fd = new FormData(e.currentTarget);
     try {
-      // 1) Server-side Turnstile check (secret lives in a Workers secret).
-      const verifyRes = await fetch("/api/turnstile/verify", {
+      // The Worker verifies the Turnstile token server-side, then
+      // delivers to Web3Forms. No Turnstile field leaves the Worker's
+      // clean payload (that would trip Web3Forms' Pro check).
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: turnstileToken }),
+        body: JSON.stringify({
+          name: String(fd.get("name") ?? "").trim(),
+          email: String(fd.get("email") ?? "").trim(),
+          message: String(fd.get("message") ?? "").trim(),
+          token: turnstileToken,
+        }),
       });
-      const verify = (await verifyRes.json().catch(() => ({}))) as {
+      const data = (await res.json().catch(() => ({}))) as {
         success?: boolean;
         message?: string;
       };
-      if (!verifyRes.ok || verify.success !== true) {
-        const why =
-          typeof verify.message === "string"
-            ? verify.message
-            : `Verification failed (HTTP ${verifyRes.status})`;
-        throw new Error(`Human check rejected: ${why}`);
-      }
-
-      // 2) Deliver from the browser — Web3Forms free tier requires it, and
-      //    rejects submissions that carry a Turnstile token (Pro-only).
-      fd.append("access_key", ACCESS_KEY);
-      const sendRes = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        body: fd,
-      });
-      const sent = (await sendRes.json().catch(() => ({}))) as {
-        success?: boolean;
-        message?: string;
-      };
-      if (!sendRes.ok || sent.success !== true) {
-        const why =
-          typeof sent.message === "string" && sent.message
-            ? sent.message
-            : sent.success === undefined
-              ? `Network error (HTTP ${sendRes.status})`
-              : "Web3Forms returned a failure";
-        throw new Error(`Delivery failed: ${why}`);
+      if (!res.ok || data.success !== true) {
+        throw new Error(
+          typeof data.message === "string" && data.message
+            ? data.message
+            : `Send failed (HTTP ${res.status})`,
+        );
       }
       setSubmitted(true);
     } catch (err) {
