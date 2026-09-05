@@ -42,8 +42,8 @@ declare global {
 const CONTACT_LINKS = [
   {
     label: "Email",
-    value: "juliusmatro01@gmail.com",
-    href: "mailto:juliusmatro01@gmail.com",
+    value: "juliusmatro02@gmail.com",
+    href: "mailto:juliusmatro02@gmail.com",
     Icon: Mail,
   },
   {
@@ -129,7 +129,7 @@ export function ContactSection() {
         if (!cancelled) {
           setStatus("error");
           setErrorMsg(
-            "The anti-bot check couldn't load — please email juliusmatro01@gmail.com directly.",
+            "The anti-bot check couldn't load — please email juliusmatro02@gmail.com directly.",
           );
         }
       });
@@ -149,7 +149,7 @@ export function ContactSection() {
     let ok = false;
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText("juliusmatro01@gmail.com");
+        await navigator.clipboard.writeText("juliusmatro02@gmail.com");
         ok = true;
       }
     } catch {
@@ -157,7 +157,7 @@ export function ContactSection() {
     }
     if (!ok) {
       const ta = document.createElement("textarea");
-      ta.value = "juliusmatro01@gmail.com";
+      ta.value = "juliusmatro02@gmail.com";
       ta.style.position = "fixed";
       ta.style.opacity = "0";
       document.body.appendChild(ta);
@@ -185,7 +185,7 @@ export function ContactSection() {
     if (!SITE_KEY || !ACCESS_KEY) {
       setStatus("error");
       setErrorMsg(
-        "The contact form is still being configured — please email juliusmatro01@gmail.com directly.",
+        "The contact form is still being configured — please email juliusmatro02@gmail.com directly.",
       );
       return;
     }
@@ -231,7 +231,7 @@ export function ContactSection() {
       if (!sendRes.ok || sent.success !== true) {
         setStatus("error");
         setErrorMsg(
-          "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
+          "Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.",
         );
         return;
       }
@@ -247,7 +247,7 @@ export function ContactSection() {
     } catch {
       setStatus("error");
       setErrorMsg(
-        "Something went wrong sending your message. Please try again or email juliusmatro01@gmail.com directly.",
+        "Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.",
       );
     }
   };
@@ -291,10 +291,10 @@ export function ContactSection() {
               <p className="mt-3 text-[15px] text-ink-soft">
                 In the meantime, reach me directly at{" "}
                 <a
-                  href="mailto:juliusmatro01@gmail.com"
+                  href="mailto:juliusmatro02@gmail.com"
                   className="font-medium text-ink underline decoration-ink/20 underline-offset-4 transition-colors hover:decoration-ink"
                 >
-                  juliusmatro01@gmail.com
+                  juliusmatro02@gmail.com
                 </a>
                 .
               </p>
