@@ -214,10 +214,17 @@ export function ContactSection() {
       }
 
       // Step 2 — the browser (visitor's own IP) delivers to Web3Forms.
-      // No Turnstile field here: it triggers their Pro-feature check.
+      // Strip Turnstile's hidden field before sending: the widget lives
+      // inside this <form>, so FormData(form) sweeps cf-turnstile-response
+      // into the payload, and ANY such field trips Web3Forms' paid-only
+      // "Turnstile Captcha" check (HTTP 400). botcheck stays: it is
+      // Web3Forms' own honeypot and is safe when empty.
+      fd.delete("cf-turnstile-response");
       fd.append("access_key", ACCESS_KEY);
-      // TEMP-DIAGNOSTIC: confirm the injected access key is populated.
+      // TEMP-DIAGNOSTIC: confirm the injected access key is populated
+      // and the Turnstile field is gone from the payload.
       console.log("[contact] access_key injected:", ACCESS_KEY ? ACCESS_KEY.slice(0, 8) + "…" : "(EMPTY — not injected!)");
+      console.log("[contact] final payload field names:", [...fd.keys()].join(", "));
       console.log("[contact] sending to Web3Forms; fields:", fd.get("name"), "|", fd.get("email"));
       const sendRes = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
