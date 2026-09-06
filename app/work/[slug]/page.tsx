@@ -32,7 +32,7 @@ export async function generateMetadata({
     description: project.tagline,
     openGraph: {
       type: "website",
-      url: `https://julzcreate.is-a.dev/work/${slug}`,
+      url: `https://julius-matro-portfolio.juliusmatro01.workers.dev/work/${slug}`,
       title: `${project.name} — Julius Matro`,
       description: project.tagline,
       images: [

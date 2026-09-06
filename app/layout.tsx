@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://julzcreate.is-a.dev"),
+  metadataBase: new URL("https://julius-matro-portfolio.juliusmatro01.workers.dev"),
   title: "Julius Matro — Software Developer",
   description:
     "Full-time developer in the Philippines building fast, dependable software for Android, iOS, macOS, and the web — engineered to make work faster.",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     title: "Julius Matro — Software Developer",
     description:
       "Full-time developer in the Philippines building fast, dependable software for Android, iOS, macOS, and the web — engineered to make work faster.",
-    url: "https://julzcreate.is-a.dev",
+    url: "https://julius-matro-portfolio.juliusmatro01.workers.dev",
     images: [
       {
         url: "/og-image.png",
