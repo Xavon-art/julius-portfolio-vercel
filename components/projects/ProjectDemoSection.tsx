@@ -16,11 +16,58 @@
 ------------------------------------------------------------------- */
 
 import { useEffect, useState } from "react";
-import { X, Settings2 } from "lucide-react";
+import { X, Settings2, Monitor, Smartphone } from "lucide-react";
 import type { DemoSlot, Project } from "@/lib/projects";
 import { FeaturePictogram, ProjectPictogram } from "@/lib/projectIcons";
 import { PhoneDemo } from "@/components/projects/PhoneDemo";
 import { Button } from "@/components/ui/Button";
+
+/* --------------------------- Device toggle --------------------------- */
+
+type DeviceView = "laptop" | "phone";
+
+function DeviceToggle({
+  device,
+  onChange,
+}: {
+  device: DeviceView;
+  onChange: (device: DeviceView) => void;
+}) {
+  return (
+    <div
+      className="inline-flex items-center gap-1 rounded-full bg-ink/[0.06] p-1 ring-1 ring-black/10"
+      role="group"
+      aria-label="Choose device view"
+    >
+      <button
+        type="button"
+        onClick={() => onChange("laptop")}
+        aria-pressed={device === "laptop"}
+        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-tight transition-all duration-200 ease-apple ${
+          device === "laptop"
+            ? "bg-ink text-white"
+            : "text-ink-soft hover:text-ink"
+        }`}
+      >
+        <Monitor size={13} strokeWidth={2.25} />
+        Laptop view
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("phone")}
+        aria-pressed={device === "phone"}
+        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-tight transition-all duration-200 ease-apple ${
+          device === "phone"
+            ? "bg-ink text-white"
+            : "text-ink-soft hover:text-ink"
+        }`}
+      >
+        <Smartphone size={13} strokeWidth={2.25} />
+        Phone view
+      </button>
+    </div>
+  );
+}
 
 /* ------------------------------ Frames ------------------------------ */
 
@@ -96,10 +143,15 @@ interface ProjectDemoSectionProps {
 }
 
 export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
-  const [slot, setSlot] = useState<DemoSlot>(
-    project.slug === "inventory-manager" ? "stock" : "jobs",
-  );
+  const defaultSlot: DemoSlot =
+    project.slug === "inventory-manager"
+      ? "stock"
+      : project.slug === "client-portal"
+        ? "projects"
+        : "jobs";
+  const [slot, setSlot] = useState<DemoSlot>(defaultSlot);
   const [showIntro, setShowIntro] = useState(false);
+  const [device, setDevice] = useState<DeviceView>("laptop");
 
   const storageKey = `project-demo-intro-${project.slug}`;
 
@@ -117,6 +169,19 @@ export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
     return () => cancelAnimationFrame(raf);
   }, [storageKey]);
 
+  // Device-view default: laptop on desktop, phone on actual mobile —
+  // the visitor can still switch either way afterwards.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      try {
+        setDevice(window.matchMedia("(max-width: 767px)").matches ? "phone" : "laptop");
+      } catch {
+        setDevice("laptop");
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const dismissIntro = () => {
     setShowIntro(false);
     try {
@@ -126,20 +191,28 @@ export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
     }
   };
 
-  const frame =
-    project.mockupKind === "phone" ? (
-      <PhoneFrame>
-        <PhoneDemo project={project} tab={slot} onTabChange={setSlot} />
-      </PhoneFrame>
-    ) : project.mockupKind === "laptop" ? (
-      <LaptopFrame>
-        <PhoneDemo project={project} tab={slot} onTabChange={setSlot} />
-      </LaptopFrame>
+  const demo = (
+    <PhoneDemo
+      project={project}
+      tab={slot}
+      onTabChange={setSlot}
+      device={project.supportsDeviceToggle ? device : undefined}
+    />
+  );
+
+  const frame = project.supportsDeviceToggle ? (
+    device === "laptop" ? (
+      <LaptopFrame>{demo}</LaptopFrame>
     ) : (
-      <BrowserFrame project={project}>
-        <PhoneDemo project={project} tab={slot} onTabChange={setSlot} />
-      </BrowserFrame>
-    );
+      <PhoneFrame>{demo}</PhoneFrame>
+    )
+  ) : project.mockupKind === "phone" ? (
+    <PhoneFrame>{demo}</PhoneFrame>
+  ) : project.mockupKind === "laptop" ? (
+    <LaptopFrame>{demo}</LaptopFrame>
+  ) : (
+    <BrowserFrame project={project}>{demo}</BrowserFrame>
+  );
 
   return (
     <section
@@ -233,6 +306,11 @@ export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
 
           {/* The live device */}
           <div className="relative order-1 md:order-2 md:sticky md:top-24 md:self-start">
+            {project.supportsDeviceToggle && (
+              <div className="mb-4 flex justify-center">
+                <DeviceToggle device={device} onChange={setDevice} />
+              </div>
+            )}
             <div className="flex justify-center py-2 md:py-0">{frame}</div>
             <p className="mt-5 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-faint">
               Tap the screen to explore

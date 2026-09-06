@@ -16,6 +16,9 @@ import {
   StickyNote,
   Warehouse,
   History,
+  FolderOpen,
+  Receipt,
+  MessageSquare,
 } from "lucide-react";
 import type { DemoSlot } from "@/lib/projects";
 
@@ -58,6 +61,14 @@ export function FeaturePictogram({
       return <Warehouse size={size} strokeWidth={strokeWidth} />;
     case "activity":
       return <History size={size} strokeWidth={strokeWidth} />;
+    case "projects":
+      return <FolderKanban size={size} strokeWidth={strokeWidth} />;
+    case "files":
+      return <FolderOpen size={size} strokeWidth={strokeWidth} />;
+    case "invoices":
+      return <Receipt size={size} strokeWidth={strokeWidth} />;
+    case "updates":
+      return <MessageSquare size={size} strokeWidth={strokeWidth} />;
     default:
       return <ClipboardCheck size={size} strokeWidth={strokeWidth} />;
   }

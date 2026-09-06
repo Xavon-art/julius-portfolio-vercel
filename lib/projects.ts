@@ -14,7 +14,7 @@
 ------------------------------------------------------------------- */
 
 export type MockupKind = "phone" | "laptop" | "browser";
-export type ShaderTheme = "route" | "grid";
+export type ShaderTheme = "route" | "grid" | "panels";
 export type DemoSlot =
   | "jobs"
   | "route"
@@ -22,7 +22,11 @@ export type DemoSlot =
   | "notes"
   | "stock"
   | "bins"
-  | "activity";
+  | "activity"
+  | "projects"
+  | "files"
+  | "invoices"
+  | "updates";
 export type PillTone = "solid" | "soft" | "outline";
 
 export interface JobRow {
@@ -81,6 +85,53 @@ export interface DemoMoveRow {
   time: string;
 }
 
+export interface PortalMilestoneRow {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
+export interface PortalProjectRow {
+  id: string;
+  name: string;
+  client: string;
+  status: string;
+  tone: PillTone;
+  due: string;
+  cover: string;
+  progress: number;
+  milestones: PortalMilestoneRow[];
+  feed: { time: string; text: string }[];
+}
+
+export type PortalFileKind = "pdf" | "docx" | "png" | "xlsx";
+
+export interface PortalFileRow {
+  id: string;
+  name: string;
+  kind: PortalFileKind;
+  projectId?: string;
+  uploaded: string;
+  by: string;
+}
+
+export type PortalInvoiceStatus = "Paid" | "Pending" | "Overdue";
+
+export interface PortalInvoiceRow {
+  id: string;
+  number: string;
+  client: string;
+  amount: number;
+  status: PortalInvoiceStatus;
+  due: string;
+}
+
+export interface PortalData {
+  projects: PortalProjectRow[];
+  files: PortalFileRow[];
+  invoices: PortalInvoiceRow[];
+}
+
 export interface ProjectFeature {
   id: DemoSlot;
   title: string;
@@ -100,6 +151,7 @@ export interface ProjectDemo {
   features: ProjectFeature[];
   bins?: DemoBinRow[];
   movements?: DemoMoveRow[];
+  portal?: PortalData;
 }
 
 export interface Project {
@@ -112,6 +164,7 @@ export interface Project {
   iconLabel: string;
   mockupKind: MockupKind;
   shaderTheme: ShaderTheme;
+  supportsDeviceToggle?: boolean;
   whatsappNumber: string;
   demo: ProjectDemo;
 }
@@ -568,17 +621,18 @@ export const PROJECTS: Project[] = [
     icon: "folder-kanban",
     iconLabel: "Client Portal app icon",
     mockupKind: "browser",
-    shaderTheme: "grid",
+    shaderTheme: "panels",
+    supportsDeviceToggle: true,
     whatsappNumber: "639483426818",
     demo: {
       popupTitle: "See the portal before we build yours",
       popupBody:
-        "This is a working preview of Client Portal — sample accounts and projects, so you can click through the exact flow your clients would live with.",
+        "This is a live, explorable preview of Client Portal — sample accounts, files, and invoices, so you can click through the exact flow your clients would live with. Try it in laptop or phone view.",
       popupCta: "Got it, let's explore",
       tryIt:
-        "Add a client, send a message, or move a milestone — everything here responds like the real thing.",
+        "Add a project, check off a milestone, or mark an invoice as paid — everything here responds like the real thing, and yes, you can switch between laptop and phone view above to see both.",
       customizable:
-        "This is just a glimpse. Every workflow shown here — client fields, milestones, access, inbox logic — can be fully customized to fit how you and your clients actually work.",
+        "This is just a glimpse. Every workflow shown here — project fields, invoice statuses, file structure, client updates — can be fully customized or personalized to match how your business actually operates.",
       jobs: [
         {
           id: "j1",
@@ -716,26 +770,208 @@ export const PROJECTS: Project[] = [
       ],
       features: [
         {
-          id: "jobs",
-          title: "Project tracker",
-          body: "Every engagement in one queue with a status your clients can actually read.",
+          id: "projects",
+          title: "One dashboard, every project",
+          body: "Every engagement, its milestones, and its files in one place — statuses your clients can actually read.",
         },
         {
-          id: "route",
-          title: "Milestones that move themselves",
-          body: "Start, build, review, launch — the next step is always visible, never a mystery.",
+          id: "files",
+          title: "Files that stay organized",
+          body: "Every document linked to the right project — no more hunting through inboxes and shared drives.",
         },
         {
-          id: "team",
-          title: "Client roster",
-          body: "Every account, what they're running, and how many projects are active.",
+          id: "invoices",
+          title: "Invoices, tracked automatically",
+          body: "Created, paid, overdue — with a running total that never needs a spreadsheet.",
         },
         {
-          id: "notes",
-          title: "Message inbox",
-          body: "Feedback, invoices, and files land in one thread per client — nothing lost.",
+          id: "updates",
+          title: "Updates clients actually read",
+          body: "Milestone completions and invoice activity land in one clean feed.",
         },
       ],
+      portal: {
+        projects: [
+          {
+            id: "p1",
+            name: "Website Redesign",
+            client: "North & Co.",
+            status: "Active",
+            tone: "soft",
+            due: "Due Nov 12",
+            cover: "cov1",
+            progress: 40,
+            milestones: [
+              { id: "p1m1", label: "Kickoff", done: true },
+              { id: "p1m2", label: "Wireframes", done: true },
+              { id: "p1m3", label: "Design review", done: false },
+              { id: "p1m4", label: "Build", done: false },
+              { id: "p1m5", label: "Handover", done: false },
+            ],
+            feed: [
+              { time: "09:40", text: "North & Co. uploaded feedback · 3 files." },
+              { time: "08:15", text: "Milestone 'Wireframes' marked complete." },
+            ],
+          },
+          {
+            id: "p2",
+            name: "Mobile App Build",
+            client: "Lighthouse Labs",
+            status: "On track",
+            tone: "soft",
+            due: "Due Dec 03",
+            cover: "cov2",
+            progress: 25,
+            milestones: [
+              { id: "p2m1", label: "Sprint 1 plan", done: true },
+              { id: "p2m2", label: "Core UI build", done: false },
+              { id: "p2m3", label: "Beta release", done: false },
+              { id: "p2m4", label: "Launch", done: false },
+            ],
+            feed: [{ time: "09:05", text: "Sprint review wrapped — on track." }],
+          },
+          {
+            id: "p3",
+            name: "Brand Refresh",
+            client: "Atlas Studio",
+            status: "In review",
+            tone: "outline",
+            due: "Due Oct 28",
+            cover: "cov3",
+            progress: 33,
+            milestones: [
+              { id: "p3m1", label: "Moodboards", done: true },
+              { id: "p3m2", label: "Identity system", done: false },
+              { id: "p3m3", label: "Guidelines", done: false },
+            ],
+            feed: [{ time: "08:50", text: "Waiting on client sign-off for moodboards." }],
+          },
+          {
+            id: "p4",
+            name: "Cloud Migration",
+            client: "Pinnacle Group",
+            status: "Complete",
+            tone: "solid",
+            due: "Done Sep 30",
+            cover: "cov4",
+            progress: 100,
+            milestones: [
+              { id: "p4m1", label: "Audit", done: true },
+              { id: "p4m2", label: "Migration wave 1", done: true },
+              { id: "p4m3", label: "Migration wave 2", done: true },
+              { id: "p4m4", label: "Handover", done: true },
+            ],
+            feed: [{ time: "Sep 30", text: "Handover sent — assets + access." }],
+          },
+          {
+            id: "p5",
+            name: "Help Desk Setup",
+            client: "Arcadia Retail",
+            status: "Queued",
+            tone: "outline",
+            due: "Due Nov 20",
+            cover: "cov5",
+            progress: 0,
+            milestones: [
+              { id: "p5m1", label: "Triage setup", done: false },
+              { id: "p5m2", label: "Team training", done: false },
+            ],
+            feed: [{ time: "08:30", text: "Kickoff room booked." }],
+          },
+        ],
+        files: [
+          {
+            id: "f1",
+            name: "Homepage-Mock-v2.png",
+            kind: "png",
+            projectId: "p1",
+            uploaded: "Sep 04",
+            by: "Julius",
+          },
+          {
+            id: "f2",
+            name: "Brand-Guidelines.pdf",
+            kind: "pdf",
+            projectId: "p3",
+            uploaded: "Sep 02",
+            by: "Atlas Studio",
+          },
+          {
+            id: "f3",
+            name: "Content-Plan-Q4.docx",
+            kind: "docx",
+            projectId: "p1",
+            uploaded: "Aug 28",
+            by: "N. Ramos",
+          },
+          {
+            id: "f4",
+            name: "Metrics-Aug.xlsx",
+            kind: "xlsx",
+            projectId: "p2",
+            uploaded: "Sep 01",
+            by: "Julius",
+          },
+          {
+            id: "f5",
+            name: "Sprint-Beta-Notes.pdf",
+            kind: "pdf",
+            projectId: "p2",
+            uploaded: "Sep 03",
+            by: "Lighthouse Labs",
+          },
+          {
+            id: "f6",
+            name: "Cloud-Map.png",
+            kind: "png",
+            projectId: "p4",
+            uploaded: "Sep 30",
+            by: "Pinnacle Group",
+          },
+        ],
+        invoices: [
+          {
+            id: "i1",
+            number: "INV-1041",
+            client: "North & Co.",
+            amount: 124000,
+            status: "Paid",
+            due: "Due Sep 28",
+          },
+          {
+            id: "i2",
+            number: "INV-1042",
+            client: "Atlas Studio",
+            amount: 65000,
+            status: "Pending",
+            due: "Due Oct 14",
+          },
+          {
+            id: "i3",
+            number: "INV-1043",
+            client: "Lighthouse Labs",
+            amount: 98000,
+            status: "Pending",
+            due: "Due Nov 05",
+          },
+          {
+            id: "i4",
+            number: "INV-0339",
+            client: "Pinnacle Group",
+            amount: 210000,
+            status: "Overdue",
+            due: "Due Sep 20",
+          },
+          {
+            id: "i5",
+            number: "INV-1044",
+            client: "Arcadia Retail",
+            amount: 45000,
+            status: "Pending",
+            due: "Due Nov 22",
+          },
+        ],
+      },
     },
   },
 ];

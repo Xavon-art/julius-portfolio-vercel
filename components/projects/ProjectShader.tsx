@@ -4,11 +4,13 @@
    ProjectShader — a small WebGL2 canvas that paints a monochrome
    "data flow" backdrop behind each project hero.
    ------------------------------------------------------------------
-   Two themes (selected by <Project.demo.shaderTheme>):
-     "route" — field routes fanning in from the left and converging on
-               a hub at the right, with traveling pulses + ripple rings.
-     "grid"  — a faint data grid with a scanning column, scan row, and
-               pulsing inventory-style bars along the bottom.
+   Three themes (selected by <Project.demo.shaderTheme>):
+     "route"  — field routes fanning in from the left and converging on
+                a hub at the right, with traveling pulses + ripples.
+     "grid"   — a faint data grid with a scanning column, scan row, and
+                pulsing inventory-style bars along the bottom.
+     "panels" — layered translucent document panels shifting z-order,
+                with data streams flowing from a sender column.
 
    Everything is strictly grayscale ink on the paper gradient, so it
    stays on-theme. The fragment shader does its own anti-aliasing
@@ -54,6 +56,11 @@ float dotSeg(vec2 p, vec2 a, vec2 b) {
   return dot(pa, ba) / dot(ba, ba);
 }
 
+float sdRoundedBox(vec2 p, vec2 b, float r) {
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
 void main() {
   vec2 uv   = gl_FragCoord.xy / u_resolution;
   float aspect = u_resolution.x / u_resolution.y;
@@ -71,7 +78,7 @@ void main() {
   float g = 1.0 / 12.0;
   float gx = smoothstep(g * 0.5, g * 0.5 - px, abs(fract(p.x / g) - 0.5));
   float gy = smoothstep(g * 0.5, g * 0.5 - px, abs(fract(p.y / g) - 0.5));
-  a += (gx + gy) * (u_theme == 0 ? 0.028 : 0.16);
+  a += (gx + gy) * (u_theme == 0 ? 0.028 : (u_theme == 2 ? 0.05 : 0.16));
 
   if (u_theme == 0) {
     // ------------------------- ROUTE theme -------------------------
@@ -124,7 +131,7 @@ void main() {
       a += smoothstep(1.5 * px, 0.5 * px, ring) * (1.0 - rk) * 0.22;
     }
     a += smoothstep(3.0 * px, 1.2 * px, hubR) * 0.75;
-  } else {
+  } else if (u_theme == 1) {
     // ------------------------- GRID theme --------------------------
     // A scanning column + a scan row reading the grid, with a row of
     // pulsing "inventory" bars anchored at the bottom edge.
@@ -144,6 +151,62 @@ void main() {
       vec2 pb   = vec2(xc * aspect, 0.05 + h);
       float db  = sdSegment(p, pa, pb);
       a += smoothstep(2.2 * px, 1.0 * px, db) * (0.16 + 0.22 * bob);
+    }
+  } else {
+    // ------------------------ PANELS theme -------------------------
+    // Layered translucent panels (like stacked documents) slowly
+    // shifting z-order and position, with fine data streams pulsing
+    // in from a "sender" column on the left. Distinct from the pink
+    // route hub and the scanning grid — this is organization: panels
+    // stacking and settling as documents flow between two points.
+    for (int i = 0; i < 5; i++) {
+      float phase = float(i) * 1.2566;
+      float tt = u_time * 0.08;
+      float bob = 0.5 + 0.5 * sin(tt * 1.1 + phase);
+      float cx = aspect * (0.60 + 0.05 * sin(tt * 0.7 + phase));
+      float cy = 0.50 + 0.06 * sin(tt * 0.6 + phase * 1.3);
+      vec2  half = vec2(0.15 * aspect, 0.115);
+      float d = sdRoundedBox(p - vec2(cx, cy), half, 0.035);
+      float fill = 1.0 - smoothstep(-1.5 * px, 3.0 * px, d);
+      float stroke = smoothstep(2.4 * px, 0.9 * px, abs(d));
+      float depth = float(i) / 5.0;
+      a += fill * (0.05 + 0.10 * bob) + stroke * (0.12 + 0.32 * depth);
+
+      if (i % 2 == 0) {
+        float w = half.x;
+        a += smoothstep(
+              1.3 * px, 0.6 * px,
+              sdSegment(p, vec2(cx - w * 0.6, cy + half.y * 0.34),
+                           vec2(cx + w * 0.6, cy + half.y * 0.34)))
+             * (0.15 + 0.18 * bob);
+        a += smoothstep(
+              1.3 * px, 0.6 * px,
+              sdSegment(p, vec2(cx - w * 0.42, cy),
+                           vec2(cx + w * 0.22, cy)))
+             * (0.11 + 0.14 * bob);
+      }
+    }
+
+    // data streams: a sender column on the left pulses documents
+    // toward the stack, connecting to a quiet vertical hub on the
+    // right that the panels rest against.
+    for (int k = 0; k < 3; k++) {
+      float y0 = 0.30 + float(k) * 0.17;
+      vec2 a0 = vec2(aspect * 0.10, y0);
+      vec2 b0 = vec2(aspect * 0.40, 0.52 + float(k) * 0.04);
+      a += smoothstep(1.6 * px, 0.7 * px, sdSegment(p, a0, b0)) * 0.22;
+
+      float ht = fract(u_time * 0.12 + float(k) * 0.37);
+      vec2  hp = mix(a0, b0, ht);
+      a += smoothstep(3.0 * px, 1.2 * px, length(p - hp)) * 0.6;
+      a += smoothstep(6.5 * px, 3.0 * px, length(p - hp)) * 0.12;
+    }
+
+    {
+      vec2 hubA = vec2(aspect * 0.88, 0.28);
+      vec2 hubB = vec2(aspect * 0.88, 0.72);
+      a += smoothstep(1.6 * px, 0.7 * px, sdSegment(p, hubA, hubB)) * 0.10;
+      a += exp(-length(p - hubA) * 3.2) * 0.4;
     }
   }
 
@@ -217,7 +280,7 @@ export function ProjectShader({ theme }: { theme: ShaderTheme }) {
         canvas.width,
         canvas.height,
       );
-      gl.uniform1i(uTheme as WebGLUniformLocation, theme === "route" ? 0 : 1);
+      gl.uniform1i(uTheme as WebGLUniformLocation, theme === "route" ? 0 : theme === "grid" ? 1 : 2);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
