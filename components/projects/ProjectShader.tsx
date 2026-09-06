@@ -165,25 +165,25 @@ void main() {
       float bob = 0.5 + 0.5 * sin(tt * 1.1 + phase);
       float cx = aspect * (0.60 + 0.05 * sin(tt * 0.7 + phase));
       float cy = 0.50 + 0.06 * sin(tt * 0.6 + phase * 1.3);
-      vec2  half = vec2(0.15 * aspect, 0.115);
-      float d = sdRoundedBox(p - vec2(cx, cy), half, 0.035);
+      vec2  halfBox = vec2(0.15 * aspect, 0.115);
+      float d = sdRoundedBox(p - vec2(cx, cy), halfBox, 0.035);
       float fill = 1.0 - smoothstep(-1.5 * px, 3.0 * px, d);
       float stroke = smoothstep(2.4 * px, 0.9 * px, abs(d));
       float depth = float(i) / 5.0;
-      a += fill * (0.05 + 0.10 * bob) + stroke * (0.12 + 0.32 * depth);
+      a += fill * (0.04 + 0.08 * bob) + stroke * (0.08 + 0.20 * depth);
 
       if (i % 2 == 0) {
-        float w = half.x;
+        float w = halfBox.x;
         a += smoothstep(
               1.3 * px, 0.6 * px,
-              sdSegment(p, vec2(cx - w * 0.6, cy + half.y * 0.34),
-                           vec2(cx + w * 0.6, cy + half.y * 0.34)))
-             * (0.15 + 0.18 * bob);
+              sdSegment(p, vec2(cx - w * 0.6, cy + halfBox.y * 0.34),
+                           vec2(cx + w * 0.6, cy + halfBox.y * 0.34)))
+             * (0.12 + 0.14 * bob);
         a += smoothstep(
               1.3 * px, 0.6 * px,
               sdSegment(p, vec2(cx - w * 0.42, cy),
                            vec2(cx + w * 0.22, cy)))
-             * (0.11 + 0.14 * bob);
+             * (0.09 + 0.11 * bob);
       }
     }
 
@@ -230,12 +230,19 @@ export function ProjectShader({ theme }: { theme: ShaderTheme }) {
     });
     if (!gl) return;
 
+    // Paint the paper backdrop immediately. If the shader ever fails to
+    // compile (or the first frame is delayed), the hero stays light —
+    // never a black void over the headline.
+    gl.clearColor(0.965, 0.968, 0.976, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
     const compile = (type: number, src: string) => {
       const sh = gl.createShader(type);
       if (!sh) return null;
       gl.shaderSource(sh, src);
       gl.compileShader(sh);
       if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        console.warn("[ProjectShader] shader compile failed:", gl.getShaderInfoLog(sh));
         gl.deleteShader(sh);
         return null;
       }
@@ -250,7 +257,11 @@ export function ProjectShader({ theme }: { theme: ShaderTheme }) {
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.warn("[ProjectShader] program link failed:", gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return;
+    }
 
     const uResolution = gl.getUniformLocation(program, "u_resolution");
     const uTime = gl.getUniformLocation(program, "u_time");
@@ -352,6 +363,10 @@ export function ProjectShader({ theme }: { theme: ShaderTheme }) {
       ref={canvasRef}
       aria-hidden="true"
       className="absolute inset-0 block h-full w-full"
+      style={{
+        background:
+          "linear-gradient(#f4f6f9, #e6e8ed)",
+      }}
     />
   );
 }
