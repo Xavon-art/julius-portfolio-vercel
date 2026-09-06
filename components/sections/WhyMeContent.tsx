@@ -63,7 +63,7 @@ const STATS = [
   { value: "Multiple", label: "Industries Served" },
 ];
 
-export function WhyMeContent({ navigate }: SectionProps) {
+export function WhyMeContent({ navigate }: Pick<SectionProps, "navigate">) {
   return (
     <div className="relative">
       <ConvergenceShader />
