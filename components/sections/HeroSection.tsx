@@ -3,13 +3,18 @@
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { SectionFrame } from "@/components/sections/SectionFrame";
+import { WhyMeContent } from "@/components/sections/WhyMeContent";
 import { Button } from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
 import { SECTION_MAP, type SectionProps } from "@/lib/sections";
 
 /* ------------------------------------------------------------------
-   Hero — first view. Pure white surface, center-aligned, single focus.
-------------------------------------------------------------------- */
+   Hero — first view. Pure white surface, center-aligned hero focus,
+   then a richer continuation below: the "Why work with me" block
+   (cards, convergence shader, workspace photo, confirmed stats).
+   Home is now a single long section that scrolls internally before
+   the boundary + cooldown logic hands over to About.
+------------------------------------------------------------------ */
 
 export function HeroSection({ navigate, next }: SectionProps) {
   const home = SECTION_MAP.home;
@@ -50,24 +55,29 @@ export function HeroSection({ navigate, next }: SectionProps) {
             </Button>
           </div>
         </Reveal>
+
+        {/* "keep exploring"/scroll cue — now flows with the section */}
+        <button
+          onClick={next}
+          aria-label="Next section"
+          className="mt-14 flex flex-col items-center gap-1.5 text-ink-soft transition-colors hover:text-ink"
+        >
+          <span className="text-xs font-medium uppercase tracking-[0.25em]">
+            Explore
+          </span>
+          <motion.span
+            animate={{ y: [0, 7, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <ChevronDown size={22} strokeWidth={1.5} />
+          </motion.span>
+        </button>
       </div>
 
-      {/* "scroll"/next-section cue — Apple-style downward chevron */}
-      <button
-        onClick={next}
-        aria-label="Next section"
-        className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-1.5 text-ink-soft transition-colors hover:text-ink"
-      >
-        <span className="text-xs font-medium uppercase tracking-[0.25em]">
-          Explore
-        </span>
-        <motion.span
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ChevronDown size={22} strokeWidth={1.5} />
-        </motion.span>
-      </button>
+      {/* Why-me continuation — same slide, scrolls with the section */}
+      <div className="mt-16">
+        <WhyMeContent navigate={navigate} />
+      </div>
     </SectionFrame>
   );
 }

@@ -7,7 +7,6 @@ import { useSectionNavigation } from "@/hooks/useSectionNavigation";
 import { Navbar } from "@/components/nav/Navbar";
 import { SectionIndicator } from "@/components/nav/SectionIndicator";
 import { HeroSection } from "@/components/sections/HeroSection";
-import { CapabilitiesSection } from "@/components/sections/CapabilitiesSection";
 import { AboutSection } from "@/components/sections/AboutSection";
 import { SkillsSection } from "@/components/sections/SkillsSection";
 import { WorkSection } from "@/components/sections/WorkSection";
@@ -39,7 +38,6 @@ import { ContactSection } from "@/components/sections/ContactSection";
 
 const SECTION_COMPONENTS: Record<SectionId, ComponentType<SectionProps>> = {
   home: HeroSection,
-  capabilities: CapabilitiesSection,
   about: AboutSection,
   skills: SkillsSection,
   work: WorkSection,

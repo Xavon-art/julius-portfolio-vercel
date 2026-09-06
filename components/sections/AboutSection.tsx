@@ -10,13 +10,13 @@ import { SECTION_MAP } from "@/lib/sections";
    comparison rows, paired with a monochrome desk illustration.
 ------------------------------------------------------------------- */
 
-// PLACEHOLDER: replace each "[X]" only with numbers Julius confirms.
-// (The old "5+ / 4 / 20+" looked like real claims — placed here so any
-// real figure must be verified first, not guessed.)
+// CONFIRMED figures from Julius (2026). Refresh if these change.
+// First stat is deliberately "hands-on development", NOT
+// "professional experience" — that distinction matters to Julius.
 const STATS = [
-  { value: "[X]", label: "Years of professional development" },
-  { value: "[X]", label: "Platforms shipped" },
-  { value: "[X]", label: "Projects delivered" },
+  { value: "5+", label: "Years of Hands-On Development" },
+  { value: "50+", label: "Production Systems Shipped" },
+  { value: "Multiple", label: "Industries Served" },
 ];
 
 export function AboutSection() {
