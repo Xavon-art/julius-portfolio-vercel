@@ -1,6 +1,5 @@
 "use client";
 
-import { ConvergenceShader } from "@/components/sections/ConvergenceShader";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
 import type { SectionProps } from "@/lib/sections";
@@ -15,9 +14,10 @@ import type { SectionProps } from "@/lib/sections";
      03 full-time commitment
      04 business-first thinking
 
-   Rendered behind the cards is the ConvergenceShader — several strands
-   converging on a single hub ("many platforms, one solution") at quiet
-   INTENSITY 0.5 so the text stays legible.
+   SURFACE: flat paper tone, no animated background. The converging-
+   strands shader was removed when this block merged into Home — the
+   block now sits on a plain off-white surface matching the site's
+   monochrome design system (same treatment as the other sections).
 
    STATS: confirmed real figures only (updated per Julius, 2026).
      5+  Years of Hands-On Development    — development/coding, NOT
@@ -64,9 +64,7 @@ const CAPABILITIES: Capability[] = [
 
 export function WhyMeContent({ navigate }: Pick<SectionProps, "navigate">) {
   return (
-    <div className="relative">
-      <ConvergenceShader />
-
+    <div className="bg-paper">
       <div className="relative z-10">
         <div className="max-w-2xl">
           <Reveal>
