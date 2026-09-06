@@ -14,6 +14,7 @@
 
 export type SectionId =
   | "home"
+  | "capabilities"
   | "about"
   | "skills"
   | "work"
@@ -40,36 +41,43 @@ export const SECTIONS: SectionDef[] = [
     tone: "white",
   },
   {
-    id: "about",
+    id: "capabilities",
     index: 1,
+    label: "Why Me",
+    title: "Why Work With Me — Julius Matro",
+    tone: "paper",
+  },
+  {
+    id: "about",
+    index: 2,
     label: "About",
     title: "About — Julius Matro",
     tone: "paper",
   },
   {
     id: "skills",
-    index: 2,
+    index: 3,
     label: "Skills",
     title: "Skills — Julius Matro",
     tone: "paper",
   },
   {
     id: "work",
-    index: 3,
+    index: 4,
     label: "Work",
     title: "Work — Julius Matro",
     tone: "paper",
   },
   {
     id: "services",
-    index: 4,
+    index: 5,
     label: "Services",
     title: "Services — Julius Matro",
     tone: "paper",
   },
   {
     id: "contact",
-    index: 5,
+    index: 6,
     label: "Contact",
     title: "Contact — Julius Matro",
     tone: "paper",
