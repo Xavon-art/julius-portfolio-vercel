@@ -7,22 +7,31 @@
      - the animated crossfade in app/page.tsx (AnimatePresence),
      - the navbar / section indicator.
 
-   Inputs beyond the navbar:
+Inputs beyond the navbar:
      - Keyboard  : ArrowUp/ArrowLeft = previous, ArrowDown/ArrowRight =
                    next (ignored while typing in form fields).
      - Wheel     : accumulated delta triggers the next/previous section.
                    Native scrolling inside a section's own scrollable
-                   panel takes priority (checked via [data-scrollable]).
-     - Touch     : vertical/horizontal swipes on mobile.
+                   panel takes priority (checked via [data-scrollable]);
+                   only an overscroll past its edge reaches navigation.
+     - Touch     : same boundary rule as the wheel. While a section's
+                   scrollable panel can move under a swipe (or already
+                   moved during it), the gesture belongs to content —
+                   navigation only fires on a deliberate swipe past the
+                   panel's top/bottom edge (or on panels that can't
+                   scroll at all). A small flick while reading no longer
+                   jumps sections.
 
-   A short cooldown debounces all of these so a scroll-fling or a held
-   arrow key advances one section at a time.
+   nav-intent cooldown gates next/prev (scroll, swipe, keyboard,
+   chevrons) so a fling chains one section at a time. Deliberate jumps
+   (navbar links, section dots, deep links) bypass the cooldown — they
+   are intentional actions, not accidental gestures.
 ------------------------------------------------------------------- */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SECTIONS, SECTION_MAP, type SectionId } from "@/lib/sections";
 
-const COOLDOWN_MS = 850; // > the 550ms transition time
+const COOLDOWN_MS = 1000; // > 550ms transition + ~450ms settle after it
 const WHEEL_THRESHOLD = 70; // px of accumulated delta before advancing
 const SWIPE_THRESHOLD = 60; // px of finger travel before advancing
 
@@ -40,11 +49,11 @@ export function useSectionNavigation() {
 
   const cooldownRef = useRef(0);
 
+  // Direct jump. No cooldown: navbar links, section dots, and deep links
+  // are deliberate actions and must always respond instantly.
   const goTo = useCallback((target: number) => {
-    if (Date.now() - cooldownRef.current < COOLDOWN_MS) return;
     const next = Math.max(0, Math.min(SECTIONS.length - 1, target));
     if (next === indexRef.current) return;
-    cooldownRef.current = Date.now();
     setIndex(next);
   }, []);
 
@@ -55,8 +64,19 @@ export function useSectionNavigation() {
     [goTo],
   );
 
-  const next = useCallback(() => goTo(indexRef.current + 1), [goTo]);
-  const prev = useCallback(() => goTo(indexRef.current - 1), [goTo]);
+  // Step navigation — scroll/swipe/keyboard/chevrons. These are the
+  // accidental-gesture-prone paths, so they share one cooldown that keeps
+  // a strong fling from chaining through several sections.
+  const next = useCallback(() => {
+    if (Date.now() - cooldownRef.current < COOLDOWN_MS) return;
+    cooldownRef.current = Date.now();
+    goTo(indexRef.current + 1);
+  }, [goTo]);
+  const prev = useCallback(() => {
+    if (Date.now() - cooldownRef.current < COOLDOWN_MS) return;
+    cooldownRef.current = Date.now();
+    goTo(indexRef.current - 1);
+  }, [goTo]);
 
   // Deep links (#about, #work, …) are resolved after the first paint so the
   // server-rendered HTML and the client state stay in sync. The navigation
@@ -150,22 +170,76 @@ export function useSectionNavigation() {
       }
     };
 
-    const touchStart = { x: 0, y: 0 };
+    // Touch mirrors the wheel's boundary rule. Per gesture we remember:
+    //   - the scrollable panel under the finger (the section frame),
+    //   - whether the gesture pushed OUTWARD past the panel's edge
+    //     (outDir/boundaryY) — the only case that may navigate.
+    // A gesture that scrolls (or could scroll) the panel while reading
+    // is always consumed by content and never navigates.
+    const touch = {
+      x0: 0,
+      y0: 0,
+      lastY: 0,
+      scroller: null as HTMLElement | null,
+      outDir: 0, // +1 = pushed past the bottom, -1 = pushed past the top
+      boundaryY: 0,
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      touchStart.x = e.touches[0]?.clientX ?? 0;
-      touchStart.y = e.touches[0]?.clientY ?? 0;
+      const target = e.target as HTMLElement | null;
+      touch.x0 = e.touches[0]?.clientX ?? 0;
+      touch.y0 = e.touches[0]?.clientY ?? 0;
+      touch.lastY = touch.y0;
+      touch.outDir = 0;
+      touch.scroller = target?.closest<HTMLElement>("[data-scrollable]") ?? null;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? touch.lastY;
+      const dy = y - touch.lastY;
+      touch.lastY = y;
+      const scroller = touch.scroller;
+      if (!scroller || touch.outDir !== 0) return;
+      const atBottom =
+        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+      const atTop = scroller.scrollTop <= 1;
+      // Only an outward pull past the panel's own edge counts; mark the
+      // first such move so the travel past it can be measured at touchend.
+      if (atBottom && dy < -1) {
+        touch.outDir = 1;
+        touch.boundaryY = y;
+      } else if (atTop && dy > 1) {
+        touch.outDir = -1;
+        touch.boundaryY = y;
+      }
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      const dx = (e.changedTouches[0]?.clientX ?? 0) - touchStart.x;
-      const dy = (e.changedTouches[0]?.clientY ?? 0) - touchStart.y;
+      const changed = e.changedTouches[0];
+      const endX = changed?.clientX ?? touch.x0;
+      const endY = changed?.clientY ?? touch.y0;
+      const dx = endX - touch.x0;
+      const dy = endY - touch.y0;
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
       if (Math.max(absX, absY) < SWIPE_THRESHOLD) return;
+
       if (absY >= absX) {
+        // Over a scrollable panel, navigation only happens on a clear
+        // overscroll — the finger kept moving PAST the content edge by a
+        // full threshold. Ordinary reading scrolls never navigate.
+        if (touch.scroller) {
+          if (touch.outDir === 1) {
+            if (touch.boundaryY - endY < SWIPE_THRESHOLD) return;
+            next();
+          } else if (touch.outDir === -1) {
+            if (endY - touch.boundaryY < SWIPE_THRESHOLD) return;
+            prev();
+          }
+          return;
+        }
         if (dy < 0) next();
         else prev();
       } else {
@@ -177,12 +251,14 @@ export function useSectionNavigation() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("wheel", onWheel, { passive: true });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
     };
   }, [next, prev, goTo]);
