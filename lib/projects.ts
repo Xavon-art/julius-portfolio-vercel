@@ -15,7 +15,14 @@
 
 export type MockupKind = "phone" | "laptop" | "browser";
 export type ShaderTheme = "route" | "grid";
-export type DemoSlot = "jobs" | "route" | "team" | "notes";
+export type DemoSlot =
+  | "jobs"
+  | "route"
+  | "team"
+  | "notes"
+  | "stock"
+  | "bins"
+  | "activity";
 export type PillTone = "solid" | "soft" | "outline";
 
 export interface JobRow {
@@ -26,6 +33,7 @@ export interface JobRow {
   status: string;
   tone: PillTone;
   member?: string;
+  sku?: string;
   history?: { at: string; text: string }[];
   qty?: number;
   threshold?: number;
@@ -59,6 +67,20 @@ export interface NotesRow {
   body: string;
 }
 
+export interface DemoBinRow {
+  id: string;
+  name: string;
+  items: string[];
+}
+
+export interface DemoMoveRow {
+  id: string;
+  ref: string;
+  delta: number;
+  bin: string;
+  time: string;
+}
+
 export interface ProjectFeature {
   id: DemoSlot;
   title: string;
@@ -76,6 +98,8 @@ export interface ProjectDemo {
   team: TeamRow[];
   notes: NotesRow[];
   features: ProjectFeature[];
+  bins?: DemoBinRow[];
+  movements?: DemoMoveRow[];
 }
 
 export interface Project {
@@ -310,12 +334,12 @@ export const PROJECTS: Project[] = [
     demo: {
       popupTitle: "A live dashboard, not a demo reel",
       popupBody:
-        "This is a working preview of Inventory Manager. Click around — everything here is sample data, so you can feel how tracking stops being a chore.",
+        "This is a live, explorable preview of Inventory Manager. Feel free to click around — this is sample data, so you can experience the app exactly how your team would.",
       popupCta: "Got it, let's explore",
       tryIt:
-        "Add a stock item, edit a quantity, or flag low stock — everything here responds like the real thing.",
+        "Add an item, move stock between bins, or check the low-stock flags — everything here responds like the real thing.",
       customizable:
-        "This is just a glimpse. Every workflow shown here — stock fields, reorder thresholds, roles, replenish logic — can be fully customized to match how your warehouse actually runs.",
+        "This is just a glimpse. Every workflow shown here — item fields, thresholds, bin structure, reporting — can be fully customized or personalized to match how your business actually operates.",
       jobs: [
         {
           id: "j1",
@@ -324,6 +348,7 @@ export const PROJECTS: Project[] = [
           eta: "472 in stock",
           status: "In stock",
           tone: "solid",
+          sku: "CBL-USB2M",
           qty: 472,
           threshold: 60,
           highlighted: true,
@@ -339,6 +364,7 @@ export const PROJECTS: Project[] = [
           eta: "23 in stock",
           status: "Low",
           tone: "soft",
+          sku: "HDMI-1M8",
           qty: 23,
           threshold: 30,
           history: [{ at: "09:48", text: "Below threshold — flagged for reorder." }],
@@ -350,6 +376,7 @@ export const PROJECTS: Project[] = [
           eta: "6 in stock",
           status: "Low",
           tone: "soft",
+          sku: "PSU-65W",
           qty: 6,
           threshold: 20,
           highlighted: true,
@@ -362,6 +389,7 @@ export const PROJECTS: Project[] = [
           eta: "118 in stock",
           status: "In stock",
           tone: "solid",
+          sku: "SWT-8PO",
           qty: 118,
           threshold: 40,
         },
@@ -372,6 +400,7 @@ export const PROJECTS: Project[] = [
           eta: "64 in stock",
           status: "In stock",
           tone: "solid",
+          sku: "STD-LAP",
           qty: 64,
           threshold: 25,
         },
@@ -451,26 +480,80 @@ export const PROJECTS: Project[] = [
           body: "Backroom shelf audit finished — all clear.",
         },
       ],
+      bins: [
+        {
+          id: "b1",
+          name: "Aisle 3 · Bin B12",
+          items: ["USB-C Cables · 2m", "Power Supply · 65W"],
+        },
+        {
+          id: "b2",
+          name: "Aisle 3 · Bin C04",
+          items: ["HDMI · 1.8m"],
+        },
+        {
+          id: "b3",
+          name: "Aisle 2 · Bin D09",
+          items: ["Network Switch · 8-port"],
+        },
+        {
+          id: "b4",
+          name: "Aisle 4 · Bin E11",
+          items: ["Laptop Stand"],
+        },
+      ],
+      movements: [
+        {
+          id: "m1",
+          ref: "USB-C Cables · 2m",
+          delta: 120,
+          bin: "Aisle 3 · Bin B12",
+          time: "08:15",
+        },
+        {
+          id: "m2",
+          ref: "HDMI · 1.8m",
+          delta: -5,
+          bin: "Aisle 3 · Bin C04",
+          time: "09:31",
+        },
+        {
+          id: "m3",
+          ref: "Network Switch · 8-port",
+          delta: 24,
+          bin: "Aisle 2 · Bin D09",
+          time: "09:46",
+        },
+        {
+          id: "m4",
+          ref: "Power Supply · 65W",
+          delta: -6,
+          bin: "Aisle 5 · Bin A02",
+          time: "09:58",
+        },
+        {
+          id: "m5",
+          ref: "USB-C Cables · 2m",
+          delta: 20,
+          bin: "Aisle 3 · Bin B12",
+          time: "10:04",
+        },
+      ],
       features: [
         {
-          id: "jobs",
-          title: "Live stock levels",
-          body: "Every product's movement in real time — what's here, what's low, what's already gone.",
+          id: "stock",
+          title: "Live stock dashboard",
+          body: "Every product's movement in real time — what's here, what's low, what's already gone. Items under their threshold flag themselves.",
         },
         {
-          id: "route",
-          title: "Replenish workflow",
-          body: "Restock orders assembled in priority order and checked off as shelves refill.",
+          id: "bins",
+          title: "Bins & locations",
+          body: "Every shelf location mapped — add a bin, rename it, and see exactly what lives inside.",
         },
         {
-          id: "team",
-          title: "Warehouse staff",
-          body: "Who's on the floor, who's covering the counter, and who can move.",
-        },
-        {
-          id: "notes",
-          title: "Stock alerts",
-          body: "Flag a discrepancy the second it's spotted — the note is proof for later.",
+          id: "activity",
+          title: "Movement log",
+          body: "Every unit added or shipped, timestamped. A manual entry lands in the log the moment you log it.",
         },
       ],
     },

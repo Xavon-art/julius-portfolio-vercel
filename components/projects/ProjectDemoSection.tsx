@@ -96,7 +96,9 @@ interface ProjectDemoSectionProps {
 }
 
 export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
-  const [slot, setSlot] = useState<DemoSlot>("jobs");
+  const [slot, setSlot] = useState<DemoSlot>(
+    project.slug === "inventory-manager" ? "stock" : "jobs",
+  );
   const [showIntro, setShowIntro] = useState(false);
 
   const storageKey = `project-demo-intro-${project.slug}`;

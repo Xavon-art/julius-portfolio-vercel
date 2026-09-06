@@ -14,6 +14,8 @@ import {
   MapPin,
   Users,
   StickyNote,
+  Warehouse,
+  History,
 } from "lucide-react";
 import type { DemoSlot } from "@/lib/projects";
 
@@ -50,6 +52,12 @@ export function FeaturePictogram({
       return <Users size={size} strokeWidth={strokeWidth} />;
     case "notes":
       return <StickyNote size={size} strokeWidth={strokeWidth} />;
+    case "stock":
+      return <Boxes size={size} strokeWidth={strokeWidth} />;
+    case "bins":
+      return <Warehouse size={size} strokeWidth={strokeWidth} />;
+    case "activity":
+      return <History size={size} strokeWidth={strokeWidth} />;
     default:
       return <ClipboardCheck size={size} strokeWidth={strokeWidth} />;
   }

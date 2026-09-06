@@ -25,6 +25,7 @@ export type EntityInput = {
   sub: string;
   eta: string;
   member?: string;
+  sku?: string;
   qty?: number;
   threshold?: number;
 };
@@ -80,6 +81,7 @@ export function EntityScreen({
       sub: row.sub ?? "",
       eta: row.eta ?? "",
       member: row.member ?? "",
+      sku: row.sku ?? "",
       qty: row.qty !== undefined ? String(row.qty) : "",
       threshold: row.threshold !== undefined ? String(row.threshold) : "",
     });
@@ -96,6 +98,7 @@ export function EntityScreen({
       sub: draft.sub.trim(),
       eta: draft.eta.trim(),
       member: draft.member.trim() || undefined,
+      sku: draft.sku.trim() || undefined,
       qty: draft.qty.trim() ? Number.parseInt(draft.qty, 10) : undefined,
       threshold: draft.threshold.trim()
         ? Number.parseInt(draft.threshold, 10)
@@ -251,6 +254,9 @@ export function EntityScreen({
                 >
                   <div className="mt-3 space-y-2 border-t border-black/5 pt-2.5">
                     <DetailRow label={fieldLabel("sub")} value={row.sub} />
+                    {row.sku && (
+                      <DetailRow label={fieldLabel("sku")} value={row.sku} />
+                    )}
                     {isStock(row) ? (
                       <>
                         <DetailRow
@@ -261,6 +267,14 @@ export function EntityScreen({
                           label={fieldLabel("threshold")}
                           value={String(row.threshold ?? 0)}
                         />
+                        {row.qty !== undefined &&
+                          row.threshold !== undefined &&
+                          row.qty <= row.threshold && (
+                            <p className="flex items-center gap-1.5 text-[10px] font-semibold text-ink">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
+                              Below threshold — flagged for reorder
+                            </p>
+                          )}
                       </>
                     ) : (
                       <DetailRow label={fieldLabel("eta")} value={row.eta} />

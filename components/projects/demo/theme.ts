@@ -11,7 +11,7 @@
 
 import type { JobRow, PillTone } from "@/lib/projects";
 
-export type EntityKey = "title" | "sub" | "eta" | "member" | "qty" | "threshold";
+export type EntityKey = "title" | "sub" | "eta" | "member" | "qty" | "threshold" | "sku";
 
 export interface DemoField {
   key: EntityKey;
@@ -100,7 +100,8 @@ const INVENTORY: DemoTheme = {
   removeConfirm: "Remove this item?",
   fields: [
     { key: "title", label: "Item", placeholder: "e.g. USB-C Cable · 2m", grow: true },
-    { key: "sub", label: "Location", placeholder: "Aisle 3 · Bin B12", grow: true },
+    { key: "sku", label: "SKU", placeholder: "e.g. CBL-USB2M" },
+    { key: "sub", label: "Bin / Location", placeholder: "Aisle 3 · Bin B12", grow: true },
     { key: "qty", label: "Qty on hand", kind: "number" },
     { key: "threshold", label: "Reorder at", kind: "number" },
   ],
