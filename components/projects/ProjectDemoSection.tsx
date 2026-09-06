@@ -16,7 +16,7 @@
 ------------------------------------------------------------------- */
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Settings2 } from "lucide-react";
 import type { DemoSlot, Project } from "@/lib/projects";
 import { FeaturePictogram, ProjectPictogram } from "@/lib/projectIcons";
 import { PhoneDemo } from "@/components/projects/PhoneDemo";
@@ -100,8 +100,6 @@ export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
   const [showIntro, setShowIntro] = useState(false);
 
   const storageKey = `project-demo-intro-${project.slug}`;
-  const activeFeature =
-    project.demo.features.find((f) => f.id === slot) ?? project.demo.features[0];
 
   // Popup shows once per session. Deferred out of the effect body to
   // dodge react-hooks setState-in-effect (same pattern as the shell's
@@ -206,16 +204,29 @@ export function ProjectDemoSection({ project }: ProjectDemoSectionProps) {
               })}
             </ul>
 
-            {/* Active feature hint */}
-            {activeFeature && (
-              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-ink/15 p-4">
-                <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-ink" />
-                <p className="text-[13px] leading-relaxed text-ink-soft">
-                  <span className="font-semibold text-ink">Try it:</span>{" "}
-                  {activeFeature.hint}
+            {/* Customizable value prop — everything is negotiable */}
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-ink/15 bg-ink/[0.03] p-4">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+                <Settings2 size={12} strokeWidth={2.25} />
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold tracking-tight text-ink">
+                  Made to fit your way of working
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
+                  {project.demo.customizable}
                 </p>
               </div>
-            )}
+            </div>
+
+            {/* Active feature hint */}
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-ink/15 p-4">
+              <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-ink/40" />
+              <p className="text-[13px] leading-relaxed text-ink-soft">
+                <span className="font-semibold text-ink">Try it:</span>{" "}
+                {project.demo.tryIt}
+              </p>
+            </div>
           </div>
 
           {/* The live device */}

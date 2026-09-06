@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated OpenNext deploy output (not hand-written source):
     ".open-next/**",
+    // Wrangler local dev/preview scratch (generated bundles):
+    ".wrangler/**",
   ]),
 ]);
 

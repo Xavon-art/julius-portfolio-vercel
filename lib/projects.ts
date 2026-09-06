@@ -25,7 +25,16 @@ export interface JobRow {
   eta: string;
   status: string;
   tone: PillTone;
+  member?: string;
+  history?: { at: string; text: string }[];
+  qty?: number;
+  threshold?: number;
   highlighted?: boolean;
+}
+
+export interface JobLog {
+  at: string;
+  text: string;
 }
 
 export interface RouteStopRow {
@@ -54,13 +63,14 @@ export interface ProjectFeature {
   id: DemoSlot;
   title: string;
   body: string;
-  hint: string;
 }
 
 export interface ProjectDemo {
   popupTitle: string;
   popupBody: string;
   popupCta: string;
+  tryIt: string;
+  customizable: string;
   jobs: JobRow[];
   route: RouteStopRow[];
   team: TeamRow[];
@@ -100,6 +110,10 @@ export const PROJECTS: Project[] = [
       popupBody:
         "This is a live, explorable preview of Field Ops Suite. Feel free to click around — this is sample data, so you can experience the app exactly how your team would.",
       popupCta: "Got it, let's explore",
+      tryIt:
+        "Add a job, reorder a route stop, or check the team — everything here responds like the real thing.",
+      customizable:
+        "This is just a glimpse. Every workflow shown here — job fields, statuses, team roles, route logic — can be fully customized or personalized to match how your business actually operates.",
       jobs: [
         {
           id: "j1",
@@ -108,7 +122,13 @@ export const PROJECTS: Project[] = [
           eta: "ETA 09:30",
           status: "In progress",
           tone: "soft",
+          member: "Ana Reyes",
           highlighted: true,
+          history: [
+            { at: "09:12", text: "Ana arrived on site." },
+            { at: "09:24", text: "Access granted by building admin." },
+            { at: "09:28", text: "Started install — swap-out unit." },
+          ],
         },
         {
           id: "j2",
@@ -117,6 +137,8 @@ export const PROJECTS: Project[] = [
           eta: "ETA 10:15",
           status: "Assigned",
           tone: "outline",
+          member: "Ben Torres",
+          history: [{ at: "08:40", text: "Assigned to Ben Torres." }],
         },
         {
           id: "j3",
@@ -133,6 +155,11 @@ export const PROJECTS: Project[] = [
           eta: "ETA 11:40",
           status: "Complete",
           tone: "solid",
+          member: "Ana Reyes",
+          history: [
+            { at: "11:38", text: "Drop-off confirmed by client." },
+            { at: "11:42", text: "Job closed — delivered." },
+          ],
         },
         {
           id: "j5",
@@ -186,35 +213,35 @@ export const PROJECTS: Project[] = [
           id: "t1",
           name: "Ana Reyes",
           role: "Lead Installer",
-          status: "On route",
+          status: "On a job",
           tone: "soft",
         },
         {
           id: "t2",
           name: "Ben Torres",
           role: "Technician",
-          status: "On route",
+          status: "On the way",
           tone: "soft",
         },
         {
           id: "t3",
           name: "Marco Santos",
           role: "Technician",
-          status: "Standby",
+          status: "Available",
           tone: "outline",
         },
         {
           id: "t4",
           name: "Liezl Cruz",
           role: "Coordinator",
-          status: "Remote",
+          status: "Available",
           tone: "outline",
         },
         {
           id: "t5",
           name: "Kim Abella",
           role: "Dispatch",
-          status: "Remote",
+          status: "Available",
           tone: "outline",
         },
       ],
@@ -249,25 +276,21 @@ export const PROJECTS: Project[] = [
           id: "jobs",
           title: "Dispatch & jobs",
           body: "Every job in one queue. Assign, accept, and complete on the spot — status moves the whole team in real time.",
-          hint: "Tap a job to advance its status.",
         },
         {
           id: "route",
           title: "Live route planning",
           body: "Stops arrive in the order that makes sense, and recalculate when the day changes on you.",
-          hint: "Reorder stops, or check them off as you move.",
         },
         {
           id: "team",
           title: "Field team, one view",
           body: "See who is where, who is free, and who is already on the way — without a single call.",
-          hint: "Tap a member to cycle their status.",
         },
         {
           id: "notes",
           title: "Real-time reporting",
           body: "Log what happened at the site the moment it happens. Notes land with the office before you leave.",
-          hint: "Add a note to the day's log.",
         },
       ],
     },
@@ -289,6 +312,10 @@ export const PROJECTS: Project[] = [
       popupBody:
         "This is a working preview of Inventory Manager. Click around — everything here is sample data, so you can feel how tracking stops being a chore.",
       popupCta: "Got it, let's explore",
+      tryIt:
+        "Add a stock item, edit a quantity, or flag low stock — everything here responds like the real thing.",
+      customizable:
+        "This is just a glimpse. Every workflow shown here — stock fields, reorder thresholds, roles, replenish logic — can be fully customized to match how your warehouse actually runs.",
       jobs: [
         {
           id: "j1",
@@ -297,7 +324,13 @@ export const PROJECTS: Project[] = [
           eta: "472 in stock",
           status: "In stock",
           tone: "solid",
+          qty: 472,
+          threshold: 60,
           highlighted: true,
+          history: [
+            { at: "10:04", text: "Cycle count ran — 472 on hand." },
+            { at: "08:15", text: "Received 120 from supplier #14." },
+          ],
         },
         {
           id: "j2",
@@ -306,15 +339,21 @@ export const PROJECTS: Project[] = [
           eta: "23 in stock",
           status: "Low",
           tone: "soft",
+          qty: 23,
+          threshold: 30,
+          history: [{ at: "09:48", text: "Below threshold — flagged for reorder." }],
         },
         {
           id: "j3",
           title: "Power Supply · 65W",
           sub: "Aisle 5 · Bin A02",
           eta: "6 in stock",
-          status: "Reorder",
-          tone: "outline",
+          status: "Low",
+          tone: "soft",
+          qty: 6,
+          threshold: 20,
           highlighted: true,
+          history: [{ at: "10:04", text: "Grace flagged bin A02 at 6 units." }],
         },
         {
           id: "j4",
@@ -323,6 +362,8 @@ export const PROJECTS: Project[] = [
           eta: "118 in stock",
           status: "In stock",
           tone: "solid",
+          qty: 118,
+          threshold: 40,
         },
         {
           id: "j5",
@@ -331,6 +372,8 @@ export const PROJECTS: Project[] = [
           eta: "64 in stock",
           status: "In stock",
           tone: "solid",
+          qty: 64,
+          threshold: 25,
         },
       ],
       route: [
@@ -413,25 +456,21 @@ export const PROJECTS: Project[] = [
           id: "jobs",
           title: "Live stock levels",
           body: "Every product's movement in real time — what's here, what's low, what's already gone.",
-          hint: "Tap a row to cycle its status.",
         },
         {
           id: "route",
           title: "Replenish workflow",
           body: "Restock orders assembled in priority order and checked off as shelves refill.",
-          hint: "Reorder the queue or check steps off.",
         },
         {
           id: "team",
           title: "Warehouse staff",
           body: "Who's on the floor, who's covering the counter, and who can move.",
-          hint: "Tap a member to cycle their position.",
         },
         {
           id: "notes",
           title: "Stock alerts",
           body: "Flag a discrepancy the second it's spotted — the note is proof for later.",
-          hint: "Add an alert to the log.",
         },
       ],
     },
@@ -453,6 +492,10 @@ export const PROJECTS: Project[] = [
       popupBody:
         "This is a working preview of Client Portal — sample accounts and projects, so you can click through the exact flow your clients would live with.",
       popupCta: "Got it, let's explore",
+      tryIt:
+        "Add a client, send a message, or move a milestone — everything here responds like the real thing.",
+      customizable:
+        "This is just a glimpse. Every workflow shown here — client fields, milestones, access, inbox logic — can be fully customized to fit how you and your clients actually work.",
       jobs: [
         {
           id: "j1",
@@ -461,7 +504,12 @@ export const PROJECTS: Project[] = [
           eta: "Due Nov 12",
           status: "Active",
           tone: "soft",
+          member: "North & Co.",
           highlighted: true,
+          history: [
+            { at: "09:40", text: "Feedback uploaded — 3 files." },
+            { at: "08:15", text: "New comment on Milestone 2." },
+          ],
         },
         {
           id: "j2",
@@ -470,6 +518,8 @@ export const PROJECTS: Project[] = [
           eta: "Due Dec 03",
           status: "On track",
           tone: "soft",
+          member: "Lighthouse Labs",
+          history: [{ at: "09:05", text: "Sprint review wrapped — on track." }],
         },
         {
           id: "j3",
@@ -478,6 +528,7 @@ export const PROJECTS: Project[] = [
           eta: "Due Oct 28",
           status: "In review",
           tone: "outline",
+          member: "Atlas Studio",
         },
         {
           id: "j4",
@@ -486,6 +537,8 @@ export const PROJECTS: Project[] = [
           eta: "Done Sep 30",
           status: "Complete",
           tone: "solid",
+          member: "Pinnacle Group",
+          history: [{ at: "Sep 30", text: "Handover sent — assets + access." }],
         },
         {
           id: "j5",
@@ -583,25 +636,21 @@ export const PROJECTS: Project[] = [
           id: "jobs",
           title: "Project tracker",
           body: "Every engagement in one queue with a status your clients can actually read.",
-          hint: "Tap a project to cycle its status.",
         },
         {
           id: "route",
           title: "Milestones that move themselves",
           body: "Start, build, review, launch — the next step is always visible, never a mystery.",
-          hint: "Reorder the plan or mark steps done.",
         },
         {
           id: "team",
           title: "Client roster",
           body: "Every account, what they're running, and how many projects are active.",
-          hint: "Tap a client to cycle their status.",
         },
         {
           id: "notes",
           title: "Message inbox",
           body: "Feedback, invoices, and files land in one thread per client — nothing lost.",
-          hint: "Add a message to the thread.",
         },
       ],
     },
