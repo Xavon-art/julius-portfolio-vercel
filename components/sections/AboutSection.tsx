@@ -15,7 +15,7 @@ import { SECTION_MAP } from "@/lib/sections";
 // "professional experience" — that distinction matters to Julius.
 const STATS = [
   { value: "5+", label: "Years of Hands-On Development" },
-  { value: "50+", label: "Production Systems Shipped" },
+  { value: "20+", label: "Production Systems Shipped" },
   { value: "Multiple", label: "Industries Served" },
 ];
 

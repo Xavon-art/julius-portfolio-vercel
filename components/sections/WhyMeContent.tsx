@@ -19,14 +19,19 @@ import type { SectionProps } from "@/lib/sections";
    converging on a single hub ("many platforms, one solution") at quiet
    INTENSITY 0.5 so the text stays legible.
 
-   STATS: confirmed real figures only.
-     "5+"  Years of Hands-On Development      (development/coding — not
-                                               "professional experience")
-     "50+" Production Systems Shipped         (confirmed)
-     "Multiple" Industries Served             (qualitative by design —
-                                               no invented number)
-     If any of these ever stop being accurate, fix the value here.
+   STATS: confirmed real figures only (updated per Julius, 2026).
+     5+  Years of Hands-On Development    — development/coding, NOT
+          "professional experience"
+     20+ Production Systems Shipped       — corrected from the draft 50+
+     Multiple Industries Served           — qualitative by design,
+                                            no invented number
 ------------------------------------------------------------------ */
+
+const STATS = [
+  { value: "5+", label: "Years of Hands-On Development" },
+  { value: "20+", label: "Production Systems Shipped" },
+  { value: "Multiple", label: "Industries Served" },
+];
 
 interface Capability {
   n: string;
@@ -55,12 +60,6 @@ const CAPABILITIES: Capability[] = [
     title: "Business-first thinking",
     body: "Every project starts with one question: what\u2019s actually slowing your business down? The code follows the answer.",
   },
-];
-
-const STATS = [
-  { value: "5+", label: "Years of Hands-On Development" },
-  { value: "50+", label: "Production Systems Shipped" },
-  { value: "Multiple", label: "Industries Served" },
 ];
 
 export function WhyMeContent({ navigate }: Pick<SectionProps, "navigate">) {

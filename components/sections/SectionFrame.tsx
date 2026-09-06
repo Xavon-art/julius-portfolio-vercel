@@ -33,7 +33,7 @@ export function SectionFrame({ section, children }: SectionFrameProps) {
         section.tone === "white" ? "bg-white" : "bg-paper"
       }`}
     >
-      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 pb-24 pt-28 md:px-10">
+      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 pb-32 pt-28 md:px-10 md:pb-40">
         {children}
       </div>
     </section>
