@@ -9,12 +9,11 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// PLACEHOLDER: swap juliusmatro.dev below for the real production domain.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://juliusmatro.dev"),
+  metadataBase: new URL("https://julzcreate.is-a.dev"),
   title: "Julius Matro — Software Developer",
   description:
-    "Julius Matro is a full-time software developer based in the Philippines, building fast, reliable native and cross-platform software for Android, iOS, macOS, and the web — engineered to make businesses faster.",
+    "Full-time developer in the Philippines building fast, dependable software for Android, iOS, macOS, and the web — engineered to make work faster.",
   authors: [{ name: "Julius Matro" }],
   keywords: [
     "software developer",
@@ -55,14 +54,23 @@ export const metadata: Metadata = {
     siteName: "Julius Matro",
     title: "Julius Matro — Software Developer",
     description:
-      "Fast, reliable software for Android, iOS, macOS, and the web — built to make business faster.",
-    url: "https://juliusmatro.dev",
+      "Full-time developer in the Philippines building fast, dependable software for Android, iOS, macOS, and the web — engineered to make work faster.",
+    url: "https://julzcreate.is-a.dev",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Julius Matro — Software, engineered for every platform.",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Julius Matro — Software Developer",
     description:
-      "Fast, reliable software for Android, iOS, macOS, and the web — built to make business faster.",
+      "Full-time developer in the Philippines building fast, dependable software for Android, iOS, macOS, and the web — engineered to make work faster.",
+    images: ["/og-image.png"],
   },
 };
 
