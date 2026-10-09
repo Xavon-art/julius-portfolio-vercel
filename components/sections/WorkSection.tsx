@@ -9,21 +9,9 @@ import {
   LaptopMockup,
   BrowserMockup,
 } from "@/components/mockups/DeviceMockups";
-import { SECTION_MAP } from "@/lib/sections";
+import { SECTION_MAP, type SectionProps } from "@/lib/sections";
 import { PROJECTS, type Project } from "@/lib/projects";
-
-/* ------------------------------------------------------------------
-   Work — Apple-style alternating product showcase cards.
-   ------------------------------------------------------------------
-   Each card: large device mockup + title + one-liner + platform tags
-   + "View Project". Layouts alternate left/right like Apple product
-   pages. Everything is data-driven from lib/projects.ts — each card
-   links through to its live detail page at /work/[slug].
-
-   The mockups are CSS-built stand-ins for real app screenshots (see
-   DeviceMockups); the detail page now serves the real interactive
-   preview.
-------------------------------------------------------------------- */
+import { motion } from "framer-motion";
 
 function mockupFor(project: Project) {
   if (project.mockupKind === "phone") return PhoneMockup;
@@ -31,21 +19,27 @@ function mockupFor(project: Project) {
   return BrowserMockup;
 }
 
-export function WorkSection() {
+export function WorkSection({ navigate }: SectionProps) {
   const work = SECTION_MAP.work;
 
   return (
     <SectionFrame section={work}>
       <div className="mb-12 max-w-2xl">
         <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-soft md:text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-ink-soft md:text-sm">
             Selected Work
           </p>
         </Reveal>
         <Reveal delay={0.1}>
-          <h2 className="mt-5 text-[clamp(2.1rem,4.5vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-ink">
-            Software, built to ship.
+          <h2 className="mt-6 text-[clamp(2.2rem,5vw,3.8rem)] font-semibold leading-[1.05] tracking-[-0.04em] text-ink">
+            Software, built to ship
           </h2>
+        </Reveal>
+        <Reveal delay={0.2}>
+          <p className="mt-6 text-base leading-relaxed text-ink-soft md:text-lg">
+            Each project tells a story — from field operations to client portals.
+            Every detail designed for clarity and speed.
+          </p>
         </Reveal>
       </div>
 
@@ -55,49 +49,55 @@ export function WorkSection() {
           const reversed = i % 2 === 1;
           const href = `/work/${project.slug}`;
           return (
-            <Reveal key={project.slug} delay={0.08} y={34}>
-              <Link
-                href={href}
-                className={`group grid items-center gap-8 overflow-hidden rounded-3xl bg-white/60 p-6 ring-1 ring-black/5 backdrop-blur-sm transition-all duration-300 ease-apple hover:shadow-[0_24px_48px_-24px_rgba(0,0,0,0.35)] md:grid-cols-2 md:gap-6 md:p-10 ${
-                  reversed ? "md:[&>*:first-child]:order-2" : ""
-                }`}
+            <Reveal key={project.slug} delay={0.08} y={40}>
+              <motion.div
+                whileHover={{ y: -6 }}
+                transition={{ type: "spring", stiffness: 160, damping: 20 }}
               >
-                {/* Visual */}
-                <div
-                  aria-hidden="true"
-                  className="flex items-center justify-center rounded-2xl bg-gradient-to-b from-white via-[#f2f2f4] to-[#e7e7ea] px-6 py-10 transition-transform duration-500 ease-apple group-hover:scale-[1.01]"
+                <Link
+                  href={href}
+                  className={`group grid items-center gap-8 overflow-hidden rounded-[2rem] bg-white/80 p-6 ring-1 ring-black/5 backdrop-blur transition-shadow hover:shadow-[0_60px_120px_-80px_rgba(15,15,18,0.95)] md:grid-cols-2 md:gap-10 md:p-12 ${
+                    reversed ? "md:[&>*:first-child]:order-2" : ""
+                  }`}
                 >
-                  <Mockup />
-                </div>
+                  <div
+                    aria-hidden="true"
+                    className="relative flex items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-white via-[#f7f8ff] to-[#f2f4ff] px-6 py-12"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-aurora-violet/5 via-aurora-cyan/5 to-aurora-amber/5" />
+                    <div className="relative">
+                      <Mockup />
+                    </div>
+                  </div>
 
-                {/* Copy */}
-                <div>
-                  <ul className="flex flex-wrap gap-2">
-                    {project.platforms.map((tag) => (
-                      <li
-                        key={tag}
-                        className="rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold tracking-tight text-ink-soft"
-                      >
-                        {tag}
-                      </li>
-                    ))}
-                  </ul>
-                  <h3 className="mt-5 text-2xl font-semibold tracking-tight text-ink md:text-3xl">
-                    {project.name}
-                  </h3>
-                  <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-soft md:text-base">
-                    {project.description}
-                  </p>
-                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-ink transition-colors group-hover:text-ink-soft">
-                    View Project
-                    <ArrowUpRight
-                      size={16}
-                      strokeWidth={2}
-                      className="transition-transform duration-300 ease-apple group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    />
-                  </span>
-                </div>
-              </Link>
+                  <div>
+                    <ul className="flex flex-wrap gap-2">
+                      {project.platforms.map((tag) => (
+                        <li
+                          key={tag}
+                          className="rounded-full border border-line bg-white px-3.5 py-1 text-xs font-semibold tracking-tight text-ink-soft"
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                    <h3 className="mt-6 text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+                      {project.name}
+                    </h3>
+                    <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink-soft md:text-lg">
+                      {project.description}
+                    </p>
+                    <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-ink transition-colors group-hover:text-ink-soft">
+                      View Project
+                      <ArrowUpRight
+                        size={18}
+                        strokeWidth={2}
+                        className="transition-transform duration-300 ease-apple group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      />
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
             </Reveal>
           );
         })}

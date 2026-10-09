@@ -1,58 +1,54 @@
 @import "tailwindcss";
 
-/* ------------------------------------------------------------------
-   Design tokens — Apple-inspired monochrome system.
-   Pure white / off-white surfaces, near-black ink, mid-gray text.
-   No saturated colors anywhere; all emphasis comes from contrast,
-   scale, spacing, and motion.
-------------------------------------------------------------------- */
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-inter), ui-serif, Georgia, "Times New Roman",
+    serif;
 
-  --color-ink: #1d1d1f;
-  --color-ink-soft: #6e6e73;
-  --color-ink-faint: #86868b;
-  --color-paper: #fafafa;
-  --color-mist: #f5f5f7;
-  --color-line: #d2d2d7;
+  --color-ink: #0f0f12;
+  --color-ink-soft: #6f7380;
+  --color-ink-faint: #9fa4b3;
+  --color-paper: #fdfdf9;
+  --color-mist: #f5f7fb;
+  --color-line: #e6e9f2;
 
-  /* Apple's signature strong ease-out "smooth deceleration" curve */
+  --color-aurora-violet: #b8b5ff;
+  --color-aurora-cyan: #b9e7ff;
+  --color-aurora-amber: #ffe0b3;
+
   --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html,
 body {
   height: 100%;
+  scroll-behavior: smooth;
 }
 
-/* The body never scrolls — navigation is section-based (see useSectionNavigation).
-   Individual sections scroll internally if their content is taller than the viewport. */
 body {
-  overflow: hidden;
-  background: #f5f5f7;
+  background: #fdfdf9;
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: #1d1d1f;
+  background: #0f0f12;
   color: #ffffff;
 }
 
-/* Slim, unobtrusive scrollbars for the internal section panels */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  scrollbar-color: rgba(15, 15, 18, 0.18) transparent;
 }
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(15, 15, 18, 0.18);
   border-radius: 999px;
 }
 *::-webkit-scrollbar-track {

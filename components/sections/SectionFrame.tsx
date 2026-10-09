@@ -2,40 +2,36 @@
 
 import type { ReactNode } from "react";
 import type { SectionDef } from "@/lib/sections";
-
-/* ------------------------------------------------------------------
-   SectionFrame — the layout shell every section renders inside.
-   ------------------------------------------------------------------
-   - Absolutely fills the viewport (sections stack for the crossfade).
-   - Scrolls internally when its content is taller than the screen
-     (`data-scrollable` lets useSectionNavigation defer the wheel).
-   - Carries the section's flat surface tone (white / paper) so each
-     view is a clean, opaque panel with no animated backdrop.
-
-   The transition wrapper in app/page.tsx animates the <section>
-   element itself; this frame handles per-section layout + surface.
-------------------------------------------------------------------- */
+import { useReducedMotion, motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 
 interface SectionFrameProps {
   section: SectionDef;
   children: ReactNode;
+  fullHeight?: boolean;
 }
 
-export function SectionFrame({ section, children }: SectionFrameProps) {
+export function SectionFrame({ section, children, fullHeight = false }: SectionFrameProps) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [60, -40]);
+  const opacity = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0, 1, 1, 0]);
+
   return (
     <section
       id={section.id}
+      ref={ref}
       role="region"
       aria-label={section.label}
-      tabIndex={-1}
-      data-scrollable
-      className={`absolute inset-0 z-10 overflow-y-auto overscroll-contain outline-none ${
-        section.tone === "white" ? "bg-white" : "bg-paper"
-      }`}
+      className={`${fullHeight ? "min-h-screen" : "min-h-[90vh]"} relative flex items-center py-24`}
     >
-      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 pb-32 pt-28 md:px-10 md:pb-40">
+      <motion.div
+        style={reduce ? undefined : { y, opacity }}
+        className="relative z-10 mx-auto flex w-full max-w-6xl flex-col px-6 md:px-10"
+      >
         {children}
-      </div>
+      </motion.div>
     </section>
   );
 }

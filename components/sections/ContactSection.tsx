@@ -1,25 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { motion } from "framer-motion";
-import { Mail, UserRound, GitBranch, ArrowUpRight, Check, Loader2 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Mail, UserRound, GitBranch, ArrowUpRight, Check, Loader2, Sparkles } from "lucide-react";
 import { SectionFrame } from "@/components/sections/SectionFrame";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
-import { SECTION_MAP } from "@/lib/sections";
-
-/* ------------------------------------------------------------------
-   Contact — bookends the experience on the paper surface, echoing the
-   hero's calm. Apple-form aesthetic (underline inputs) + direct links.
-
-   Split flow (verification + delivery stay separate):
-   Step 1 — the Turnstile token is verified server-side via
-            /api/verify-captcha (secret stays in a Workers secret).
-   Step 2 — on success, the browser submits directly to Web3Forms from
-            the visitor's own IP (their free tier requires it and
-            per-visitor IPs avoid the shared-egress rate-limit). The
-            access key + site key are public by design, inlined here.
-------------------------------------------------------------------- */
+import { SECTION_MAP, type SectionProps } from "@/lib/sections";
 
 interface TurnstileWidgetOptions {
   sitekey: string;
@@ -38,7 +25,6 @@ declare global {
   }
 }
 
-// Julius' real contact details.
 const CONTACT_LINKS = [
   {
     label: "Email",
@@ -75,8 +61,7 @@ function loadTurnstileScript(): Promise<void> {
   if (!turnstileShell) {
     turnstileShell = new Promise<void>((resolve, reject) => {
       const s = document.createElement("script");
-      s.src =
-        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       s.async = true;
       s.defer = true;
       s.onload = () => resolve();
@@ -90,7 +75,7 @@ function loadTurnstileScript(): Promise<void> {
   return turnstileShell;
 }
 
-export function ContactSection() {
+export function ContactSection({ navigate }: SectionProps) {
   const contact = SECTION_MAP.contact;
   const [submitted, setSubmitted] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
@@ -100,16 +85,12 @@ export function ContactSection() {
   const widgetIdRef = useRef<string | undefined>(undefined);
   const [emailCopied, setEmailCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reduce = useReducedMotion();
 
-  useEffect(
-    () => () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-    },
-    [],
-  );
+  useEffect(() => () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+  }, []);
 
-  // Mount the Turnstile widget for this section. It is torn down when the
-  // section unmounts (SPA navigation) and re-rendered on the next visit.
   useEffect(() => {
     if (!SITE_KEY) return;
     let cancelled = false;
@@ -128,9 +109,7 @@ export function ContactSection() {
       .catch(() => {
         if (!cancelled) {
           setStatus("error");
-          setErrorMsg(
-            "The anti-bot check couldn't load — please email juliusmatro02@gmail.com directly.",
-          );
+          setErrorMsg("The anti-bot check couldn't load — please email juliusmatro02@gmail.com directly.");
         }
       });
     return () => {
@@ -142,9 +121,6 @@ export function ContactSection() {
     };
   }, []);
 
-  // The pill is a real mailto: link, so devices with a default mail app open
-  // a draft. Devices/browsers without a mailto handler do nothing silently,
-  // so we also copy the address and confirm it — the button always responds.
   const copyEmail = async () => {
     let ok = false;
     try {
@@ -184,9 +160,7 @@ export function ContactSection() {
 
     if (!SITE_KEY || !ACCESS_KEY) {
       setStatus("error");
-      setErrorMsg(
-        "The contact form is still being configured — please email juliusmatro02@gmail.com directly.",
-      );
+      setErrorMsg("The contact form is still being configured — please email juliusmatro02@gmail.com directly.");
       return;
     }
     if (!turnstileToken) {
@@ -198,47 +172,31 @@ export function ContactSection() {
     setStatus("sending");
     const fd = new FormData(e.currentTarget);
     try {
-      // Step 1 — server-side Turnstile verification only.
       const verifyRes = await fetch("/api/verify-captcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: turnstileToken }),
       });
-      const verify = (await verifyRes.json().catch(() => ({}))) as {
-        success?: boolean;
-      };
+      const verify = (await verifyRes.json().catch(() => ({}))) as { success?: boolean };
       if (!verifyRes.ok || verify.success !== true) {
         setStatus("error");
         setErrorMsg("Captcha verification failed. Please try again.");
         return;
       }
 
-      // Step 2 — the browser (visitor's own IP) delivers to Web3Forms.
-      // Strip Turnstile's hidden field before sending: the widget lives
-      // inside this <form>, so FormData(form) sweeps cf-turnstile-response
-      // into the payload, and ANY such field trips Web3Forms' paid-only
-      // "Turnstile Captcha" check (HTTP 400). botcheck stays: it is
-      // Web3Forms' own honeypot and is safe when empty.
       fd.delete("cf-turnstile-response");
       fd.append("access_key", ACCESS_KEY);
       const sendRes = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: fd,
       });
-      const sent = (await sendRes.json().catch(() => ({}))) as {
-        success?: boolean;
-      };
+      const sent = (await sendRes.json().catch(() => ({}))) as { success?: boolean };
       if (!sendRes.ok || sent.success !== true) {
         setStatus("error");
-        setErrorMsg(
-          "Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.",
-        );
+        setErrorMsg("Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.");
         return;
       }
-      // The form (with the Turnstile container) is about to leave the DOM —
-      // remove the widget from Turnstile's registry first and clear the ID so
-      // nothing left dangling on a later remount. Without this, Turnstile logs
-      // "Cannot find widget" when the stale ID is removed on the next mount.
+
       if (widgetIdRef.current) {
         window.turnstile?.remove(widgetIdRef.current);
         widgetIdRef.current = undefined;
@@ -246,9 +204,7 @@ export function ContactSection() {
       setSubmitted(true);
     } catch {
       setStatus("error");
-      setErrorMsg(
-        "Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.",
-      );
+      setErrorMsg("Something went wrong sending your message. Please try again or email juliusmatro02@gmail.com directly.");
     }
   };
 
@@ -256,21 +212,21 @@ export function ContactSection() {
     <SectionFrame section={contact}>
       <div className="relative z-10 mx-auto w-full max-w-2xl text-center">
         <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-soft md:text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-ink-soft md:text-sm">
             Contact
           </p>
         </Reveal>
 
         <Reveal delay={0.1}>
-          <h2 className="mt-5 text-[clamp(2.4rem,5.5vw,4rem)] font-semibold leading-[1.04] tracking-[-0.03em] text-ink">
-            Let&apos;s build something faster.
+            <h2 className="mt-6 text-[clamp(2.4rem,6vw,4.2rem)] font-semibold leading-[1.03] tracking-[-0.05em] text-ink">
+            Let&apos;s build something cinematic
           </h2>
         </Reveal>
 
         <Reveal delay={0.18}>
-          <p className="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-ink-soft">
-            Tell me what&apos;s slowing your business down. Software is usually
-            the answer.
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
+            Tell me what&apos;s slowing your business down. We&apos;ll turn it into
+            software that feels as good as it performs.
           </p>
         </Reveal>
 
@@ -280,13 +236,13 @@ export function ContactSection() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="mx-auto mt-12 rounded-3xl bg-white/70 p-10 ring-1 ring-black/5 backdrop-blur-sm"
+              className="mx-auto mt-12 rounded-[2rem] bg-white/80 p-10 ring-1 ring-black/5 backdrop-blur"
             >
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink text-white">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-aurora-violet/25 via-aurora-cyan/20 to-aurora-amber/20 text-ink">
                 <Check size={26} strokeWidth={2} />
               </div>
               <p className="mt-6 text-2xl font-semibold tracking-tight text-ink">
-                Message sent — I&apos;ll get back to you soon.
+                Message sent — I&apos;ll get back to you soon
               </p>
               <p className="mt-3 text-[15px] text-ink-soft">
                 In the meantime, reach me directly at{" "}
@@ -300,88 +256,37 @@ export function ContactSection() {
               </p>
             </motion.div>
           ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="mx-auto mt-12 space-y-6 text-left"
-            >
-              <input
-                type="hidden"
-                name="botcheck"
-                value=""
-                aria-hidden="true"
-                tabIndex={-1}
-              />
+            <form onSubmit={handleSubmit} className="mx-auto mt-12 space-y-6 text-left">
+              <input type="hidden" name="botcheck" value="" aria-hidden="true" tabIndex={-1} />
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="contact-name"
-                    className="mb-1 block text-sm font-medium text-ink-soft"
-                  >
+                  <label htmlFor="contact-name" className="mb-1 block text-sm font-medium text-ink-soft">
                     Name
                   </label>
-                  <input
-                    id="contact-name"
-                    name="name"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    placeholder="Your name"
-                    className={inputClass}
-                  />
+                  <input id="contact-name" name="name" type="text" required autoComplete="name" placeholder="Your name" className={inputClass} />
                 </div>
                 <div>
-                  <label
-                    htmlFor="contact-email"
-                    className="mb-1 block text-sm font-medium text-ink-soft"
-                  >
+                  <label htmlFor="contact-email" className="mb-1 block text-sm font-medium text-ink-soft">
                     Email
                   </label>
-                  <input
-                    id="contact-email"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    className={inputClass}
-                  />
+                  <input id="contact-email" name="email" type="email" required autoComplete="email" placeholder="you@company.com" className={inputClass} />
                 </div>
               </div>
               <div>
-                <label
-                  htmlFor="contact-message"
-                  className="mb-1 block text-sm font-medium text-ink-soft"
-                >
+                <label htmlFor="contact-message" className="mb-1 block text-sm font-medium text-ink-soft">
                   Message
                 </label>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  required
-                  rows={4}
-                  placeholder="What are you trying to speed up?"
-                  className={`${inputClass} resize-none`}
-                />
+                <textarea id="contact-message" name="message" required rows={4} placeholder="What are you trying to speed up?" className={`${inputClass} resize-none`} />
               </div>
 
               <div className="flex flex-col items-center gap-3 pt-1">
-                <div
-                  ref={captchaElRef}
-                  className="cf-turnstile"
-                  data-sitekey={SITE_KEY}
-                  data-theme="light"
-                  aria-label="Human verification"
-                />
+                <div ref={captchaElRef} className="cf-turnstile" data-sitekey={SITE_KEY} data-theme="light" aria-label="Human verification" />
                 {status === "error" && errorMsg && (
                   <p role="alert" className="max-w-md text-sm text-ink-soft">
                     {errorMsg}
                   </p>
                 )}
-                <Button
-                  type="submit"
-                  disabled={status === "sending"}
-                  className="w-full sm:w-auto"
-                >
+                <Button type="submit" disabled={status === "sending"} className="w-full sm:w-auto">
                   {status === "sending" ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 size={16} strokeWidth={2} className="animate-spin" />
@@ -397,48 +302,44 @@ export function ContactSection() {
         </Reveal>
 
         <Reveal delay={0.34}>
-          {/* Direct links */}
           <ul className="mt-12 flex flex-wrap items-center justify-center gap-3">
             {CONTACT_LINKS.map(({ label, value, href, Icon }) => {
-            const isEmail = label === "Email";
-            return (
-              <li key={label}>
-                <a
-                  href={href}
-                  target={href.startsWith("http") ? "_blank" : undefined}
-                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-                  onClick={isEmail ? copyEmail : undefined}
-                  aria-live={isEmail ? "polite" : undefined}
-                  className="group inline-flex items-center gap-2.5 rounded-full border border-ink/10 bg-white/60 px-5 py-2.5 text-sm font-medium tracking-tight text-ink backdrop-blur-sm transition-all duration-300 hover:border-ink/40 hover:bg-white"
-                >
-                  <Icon size={16} strokeWidth={1.75} className="text-ink-soft transition-colors group-hover:text-ink" />
-                  <span className="hidden sm:inline">{label}</span>
-                  {isEmail && emailCopied ? (
-                    <span className="flex items-center gap-1.5 text-ink-soft">
-                      <Check size={14} strokeWidth={2} />
-                      Copied
-                    </span>
-                  ) : (
-                    <>
-                      <span>{value}</span>
-                      <ArrowUpRight
-                        size={14}
-                        strokeWidth={2}
-                        className="text-ink-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink"
-                      />
-                    </>
-                  )}
-                </a>
-              </li>
-            );
-          })}
+              const isEmail = label === "Email";
+              return (
+                <li key={label}>
+                  <a
+                    href={href}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    onClick={isEmail ? copyEmail : undefined}
+                    aria-live={isEmail ? "polite" : undefined}
+                    className="group inline-flex items-center gap-2.5 rounded-full border border-line bg-white/80 px-5 py-2.5 text-sm font-medium tracking-tight text-ink backdrop-blur transition-all duration-300 hover:border-ink/40 hover:bg-white"
+                  >
+                    <Icon size={16} strokeWidth={1.75} className="text-ink-soft transition-colors group-hover:text-ink" />
+                    <span className="hidden sm:inline">{label}</span>
+                    {isEmail && emailCopied ? (
+                      <span className="flex items-center gap-1.5 text-ink-soft">
+                        <Check size={14} strokeWidth={2} />
+                        Copied
+                      </span>
+                    ) : (
+                      <>
+                        <span>{value}</span>
+                        <ArrowUpRight size={14} strokeWidth={2} className="text-ink-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                      </>
+                    )}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </Reveal>
 
         <Reveal delay={0.4}>
-          <p className="mt-10 text-sm text-ink-soft">
+          <div className="mt-12 inline-flex items-center gap-2 rounded-full bg-white/80 px-5 py-2 text-sm text-ink-soft ring-1 ring-black/5 backdrop-blur">
+            <Sparkles size={16} strokeWidth={1.5} />
             Based in the Philippines · working remotely worldwide
-          </p>
+          </div>
         </Reveal>
       </div>
     </SectionFrame>
